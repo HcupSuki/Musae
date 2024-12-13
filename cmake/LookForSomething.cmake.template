@@ -1,0 +1,63 @@
+# Usage:
+# 1. Replace <lib_cmake_name> with the standard name of the library (The name that find_package can find the library. If the library uses xxxConfig.cmake then it is xxx) (e.g. for yaml-cpp it is yaml-cpp, for Eigen3 it is Eigen).
+# 2. Replace <LIB_NAME> with a full uppercase name same as (or at least similar to, if not convenient) <lib_cmake_name>  (e.g. for yaml-cpp it is YAML_CPP, for Microsoft-GSL it is MSGSL).
+# 3. Replace <lib_name> with the full lowercase version of <LIB_NAME>.
+# 4. Replace <min_version> with the minimum version required for this library.
+# 5. Replace <src_dir_with_version> with the directory name same as what the library archive extracts to, which should includes ${MUSAE_BUILTIN_<LIB_NAME>_VERSION} indicates the library version (e.g. for yaml-cpp it is yaml-cpp-${MUSAE_BUILTIN_YAML_CPP_VERSION}).
+# 6. Replace <url_with_version> with the library archive download URL template, which should includes ${MUSAE_BUILTIN_<LIB_NAME>_VERSION} indicates the library version (e.g. for yaml-cpp it is https://github.com/jbeder/yaml-cpp/archive/refs/tags/${MUSAE_BUILTIN_<LIB_NAME>_VERSION}.tar.gz)
+# 7. Add proper options between "reuse or download" section and "configure it" section.
+# 8. Set options MUSAE_BUILTIN_<LIB_NAME> and MUSAE_BUILTIN_<LIB_NAME>_VERSION in the main CMakeLists.txt.
+# 9. Add a find_dependency(<lib_cmake_name>) line to ${CMAKE_PROJECT_NAME}Config.cmake.in in need.
+# 10. Delete this guide text, and make other parts of this file prettier.
+
+message(STATUS "Looking for <lib_cmake_name>")
+
+set(MUSAE_<LIB_NAME>_MINIMUM_REQUIRED <min_version>)
+
+if(NOT MUSAE_BUILTIN_<LIB_NAME>)
+    find_package(<lib_cmake_name> ${MUSAE_<LIB_NAME>_MINIMUM_REQUIRED})
+    if(NOT <lib_cmake_name>_FOUND)
+        set(MUSAE_BUILTIN_<LIB_NAME> ON)
+        message(NOTICE "***Notice: <lib_cmake_name> not found (minimum required is ${MUSAE_<LIB_NAME>_MINIMUM_REQUIRED}). For the time turning on MUSAE_BUILTIN_<LIB_NAME>")
+    endif()
+endif()
+
+if(MUSAE_BUILTIN_<LIB_NAME>)
+    message(STATUS "Musae will use built-in <lib_cmake_name>")
+    # check built-in version
+    if(MUSAE_BUILTIN_<LIB_NAME>_VERSION VERSION_LESS MUSAE_<LIB_NAME>_MINIMUM_REQUIRED)
+        message(NOTICE "***Notice: Provided MUSAE_BUILTIN_<LIB_NAME>_VERSION is ${MUSAE_BUILTIN_<LIB_NAME>_VERSION}, which is less than the requirement (${MUSAE_<LIB_NAME>_MINIMUM_REQUIRED}). Changing to ${MUSAE_<LIB_NAME>_MINIMUM_REQUIRED}")
+        set(MUSAE_BUILTIN_<LIB_NAME>_VERSION ${MUSAE_<LIB_NAME>_MINIMUM_REQUIRED})
+    endif()
+    # set download dest and URL
+    set(MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR "${MUSAE_PROJECT_3RDPARTY_DIR}/<src_dir_with_version>")
+    set(MUSAE_BUILTIN_<LIB_NAME>_URL "<url_with_version>")
+    # reuse or download
+    include(FetchContent)
+    if(EXISTS "${MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR}/CMakeLists.txt")
+        FetchContent_Declare(<lib_cmake_name> SOURCE_DIR "${MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR}")
+        message(STATUS "Reusing <lib_cmake_name> source ${MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR}")
+    else()
+        FetchContent_Declare(<lib_cmake_name> SOURCE_DIR "${MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR}"
+                                    URL "${MUSAE_BUILTIN_<LIB_NAME>_URL}")
+        message(STATUS "<lib_cmake_name> will be downloaded from ${MUSAE_BUILTIN_<LIB_NAME>_URL} to ${MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR}")
+    endif()
+    # set options
+    # uses CACHE INTERNAL variables to propagate options. see https://discourse.cmake.org/t/what-is-the-correct-way-to-set-options-of-a-project-before-fetch-content/268/4
+    # configure it
+    message(STATUS "Downloading (if required) and configuring <lib_cmake_name> (version: ${MUSAE_BUILTIN_<LIB_NAME>_VERSION})")
+    FetchContent_MakeAvailable(<lib_cmake_name>)
+    message(STATUS "Downloading (if required) and configuring <lib_cmake_name> (version: ${MUSAE_BUILTIN_<LIB_NAME>_VERSION}) - done")
+    # check download
+    if(NOT EXISTS "${MUSAE_BUILTIN_<LIB_NAME>_SRC_DIR}/CMakeLists.txt")
+        file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/_deps/<lib_name>-build")
+        file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/_deps/<lib_name>-subbuild")
+        message(FATAL_ERROR "It seems that the download of <lib_cmake_name> has failed. You can try running cmake again, or manually download <lib_cmake_name> from ${MUSAE_BUILTIN_<LIB_NAME>_URL} and extract it to ${MUSAE_PROJECT_3RDPARTY_DIR} (and keep the directory structure). If the error persists, you can try cleaning the build tree and restarting the build.")
+    endif()
+endif()
+
+if(NOT MUSAE_BUILTIN_<LIB_NAME>)
+    message(STATUS "Looking for <lib_cmake_name> - found (version: ${<lib_cmake_name>_VERSION})")
+else()
+    message(STATUS "Looking for <lib_cmake_name> - built-in (version: ${MUSAE_BUILTIN_<LIB_NAME>_VERSION})")
+endif()

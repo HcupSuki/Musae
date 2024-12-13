@@ -1,0 +1,18 @@
+#pragma once
+
+#include "Mustard/Data/TupleModel.h++"
+#include "Mustard/Data/Value.h++"
+
+#include "muc/array"
+
+namespace Musae::Data {
+
+using LGAHit = Mustard::Data::TupleModel<
+    Mustard::Data::Value<int, "EvtID", "Event ID">,
+    Mustard::Data::Value<int, "HitID", "Hit ID">,
+    Mustard::Data::Value<short, "ModID", "Hit module ID">,
+    Mustard::Data::Value<double, "t", "Hit time">,
+    Mustard::Data::Value<muc::array2f, "x", "Hit position">,
+    Mustard::Data::Value<float, "Edep", "Energy deposition">>;
+
+} // namespace Musae::Data

@@ -1,0 +1,22 @@
+#############################################################################
+# Initialization settings
+#############################################################################
+
+/control/verbose 0
+/run/verbose 0
+
+#/Mustard/Detector/Description/Import SimFlux.yaml
+
+/run/initialize
+
+/Musae/Physics/NonMuonProcessActivation no
+
+#############################################################################
+# Run
+#############################################################################
+
+/Mustard/Analysis/FilePath SimFlux_vis
+/Mustard/Analysis/FileMode NEW
+/Mustard/Generator/FromDataPrimaryGenerator/EventData primary_crmu/* CRMu
+/run/beamOn 1000000
+/Mustard/Run/PrintRunSummary

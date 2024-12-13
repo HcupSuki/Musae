@@ -1,0 +1,10 @@
+add_subdirectory(simulation)
+add_subdirectory(utility)
+
+file(GLOB MUSAE_APP_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*)
+foreach(_scripts ${MUSAE_APP_SCRIPTS})
+    configure_file(${_scripts} ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+endforeach()
+foreach(_scripts ${MUSAE_APP_SCRIPTS})
+    install(FILES ${_scripts} DESTINATION ${CMAKE_INSTALL_DATAROOTDIR})
+endforeach()

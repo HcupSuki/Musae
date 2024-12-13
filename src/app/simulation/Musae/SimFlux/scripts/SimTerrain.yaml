@@ -1,0 +1,49 @@
+# SimFlux: geometry description
+
+LGA:
+  Position:
+    - 0
+    - 0
+    - 0
+  EulerAngleAlpha: 0
+  EulerAngleBeta: 0
+  EulerAngleGamma: 0
+  NModule: 3
+  ModuleSpacing: 150
+  ScintillatorWidth: 300
+  ScintillatorThickness: 10
+  UseFastLGA: true
+  LGACellWidth: 10
+  NLGACellXY: 30
+  LGAThickness: 10
+  EnergyDepositionThreshold: 0.01
+  TimeResolutionFWHM: 1
+Terrain:
+  ElevationDataPath: terrain
+  Projection: UTM 50N
+  ReferenceLatitude: 25.109999999999999
+  ReferenceLongitude: 113.65000000000001
+  ReferenceElevation: .nan
+  MinLatitude: 25.099999999999998
+  MaxLatitude: 25.120000000000001
+  MinLongitude: 113.64
+  MaxLongitude: 113.66000000000001
+  MinZ: -230000
+  NVertex: 10000
+  RockElement:
+    - Ca
+    - Fe
+    - Al
+    - Si
+    - O
+  RockNAtom:
+    - 3
+    - 1
+    - 1
+    - 3
+    - 12
+  RockDensity: 1.8724527223382286e+19
+World:
+  HalfXExtent: 100000000
+  HalfYExtent: 100000000
+  HalfZExtent: 10000000
