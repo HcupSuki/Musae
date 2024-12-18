@@ -39,11 +39,12 @@ auto LGA::Construct(bool checkOverlaps) -> void {
     }
     if (lga.UseFastLGA()) {
         const auto name{lga.Name()};
-        const auto width{lga.LGACellWidth() * lga.NLGACellXY()};
+        const auto widthX{lga.LGACellWidth() * lga.NLGACellX()};
+        const auto widthY{lga.LGACellWidth() * lga.NLGACellY()};
         const auto solid{Make<G4Box>(
             name,
-            width / 2,
-            width / 2,
+            widthX / 2,
+            widthY / 2,
             lga.LGAThickness() / 2)};
         const auto logic{Make<G4LogicalVolume>(
             solid,

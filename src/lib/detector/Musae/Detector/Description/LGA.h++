@@ -1,14 +1,19 @@
 #pragma once
 
-#include "Mustard/Detector/Description/DescriptionBase.h++"
+#include "Mustard/Detector/Description/DescriptionWithCacheBase.h++"
 
+#include "CLHEP/Geometry/Point3D.h"
 #include "CLHEP/Geometry/Transform3D.h"
 
 #include "muc/array"
 
+#include <map>
+#include <unordered_map>
+#include <vector>
+
 namespace Musae::Detector::Description {
 
-class LGA final : public Mustard::Detector::Description::DescriptionBase<LGA> {
+class LGA final : public Mustard::Detector::Description::DescriptionWithCacheBase<LGA> {
     friend Mustard::Env::Memory::SingletonInstantiator;
 
 private:
@@ -18,18 +23,19 @@ private:
 public:
     // Geometry
 
-    auto Position() const -> auto { return fPosition; }
-    auto EulerAngleAlpha() const -> auto { return fEulerAngleAlpha; }
-    auto EulerAngleBeta() const -> auto { return fEulerAngleBeta; }
-    auto EulerAngleGamma() const -> auto { return fEulerAngleGamma; }
-    auto NModule() const -> auto { return fNModule; }
-    auto ModuleSpacing() const -> auto { return fModuleSpacing; }
-    auto ScintillatorWidth() const -> auto { return fScintillatorWidth; }
-    auto ScintillatorThickness() const -> auto { return fScintillatorThickness; }
-    auto UseFastLGA() const -> auto { return fUseFastLGA; }
-    auto LGACellWidth() const -> auto { return fLGACellWidth; }
-    auto NLGACellXY() const -> auto { return fNLGACellXY; }
-    auto LGAThickness() const -> auto { return fLGAThickness; }
+    auto Position() const -> auto { return *fPosition; }
+    auto EulerAngleAlpha() const -> auto { return *fEulerAngleAlpha; }
+    auto EulerAngleBeta() const -> auto { return *fEulerAngleBeta; }
+    auto EulerAngleGamma() const -> auto { return *fEulerAngleGamma; }
+    auto NModule() const -> auto { return *fNModule; }
+    auto ModuleSpacing() const -> auto { return *fModuleSpacing; }
+    auto ScintillatorWidth() const -> auto { return *fScintillatorWidth; }
+    auto ScintillatorThickness() const -> auto { return *fScintillatorThickness; }
+    auto UseFastLGA() const -> auto { return *fUseFastLGA; }
+    auto LGACellWidth() const -> auto { return *fLGACellWidth; }
+    auto NLGACellX() const -> auto { return *fNLGACellX; }
+    auto NLGACellY() const -> auto { return *fNLGACellY; }
+    auto LGAThickness() const -> auto { return *fLGAThickness; }
 
     auto Position(muc::array3d val) -> void { fPosition = val; }
     auto EulerAngleAlpha(double val) -> void { fEulerAngleAlpha = val; }
@@ -41,40 +47,89 @@ public:
     auto ScintillatorThickness(double val) -> void { fScintillatorThickness = val; }
     auto UseFastLGA(bool val) -> void { fUseFastLGA = val; }
     auto LGACellWidth(double val) -> void { fLGACellWidth = val; }
-    auto NLGACellXY(int val) -> void { fNLGACellXY = val; }
+    auto NLGACellX(int val) -> void { fNLGACellX = val; }
+    auto NLGACellY(int val) -> void { fNLGACellY = val; }
     auto LGAThickness(double val) -> void { fLGAThickness = val; }
 
-    auto Transform(int id, double zShift = 0) const -> HepGeom::Transform3D;
+    auto Rotation() const -> const auto& { return *fRotation; }
+    auto Transform(double zLocal) const -> HepGeom::Transform3D;
+    auto Transform(int moduleID, double zShift = 0) const -> HepGeom::Transform3D;
 
     // Detection
 
-    auto EnergyDepositionThreshold() const -> auto { return fEnergyDepositionThreshold; }
-    auto TimeResolutionFWHM() const -> auto { return fTimeResolutionFWHM; }
+    auto EnergyDepositionThreshold() const -> auto { return *fEnergyDepositionThreshold; }
+    auto TimeResolutionFWHM() const -> auto { return *fTimeResolutionFWHM; }
 
     auto EnergyDepositionThreshold(double val) -> void { fEnergyDepositionThreshold = val; }
     auto TimeResolutionFWHM(double val) -> void { fTimeResolutionFWHM = val; }
 
+    // Digitization
+
 private:
+    struct BasicChInfo {
+        int moduleID;
+        char edge; // 'x' or 'y'
+        int edgeFiberID;
+        constexpr auto operator<=>(const BasicChInfo&) const = default;
+    };
+
+    struct ChInfo : BasicChInfo {
+        int chipID;
+        double edgePosition;
+    };
+
+public:
+    auto NChannelPerChip() const -> auto { return *fNChannelPerChip; }
+
+    auto NChannelPerChip(int val) -> void { fNChannelPerChip = val; }
+
+    auto ChannelInfo(int channelID) const -> const ChInfo&;
+    auto LocalIntersection(int chID1, int chID2) const -> HepGeom::Point3D<double>;
+    auto Intersection(int chID1, int chID2) const -> auto { return Rotation() * LocalIntersection(chID1, chID2); }
+
+private:
+    // Geometry
+
+    auto CalculateRotation() const -> HepGeom::Rotate3D;
+
+    // Digitization
+
+    auto CalculateInverseChipMap() const -> std::vector<int>;
+    auto CalculateInverseChannelMap() const -> std::map<BasicChInfo, int>;
+    auto CalculateChannelInfo() const -> std::unordered_map<int, ChInfo>;
+
+    auto CheckModuleIDFromChipMap(int moduleID) const -> void;
+    auto CheckEdgeFiberIDFromChannelMap(char edge, int edgeFiberID) const -> void;
+
     auto ImportAllValue(const YAML::Node& node) -> void override;
     auto ExportAllValue(YAML::Node& node) const -> void override;
 
 private:
     // Geometry
-    muc::array3d fPosition;
-    double fEulerAngleAlpha;
-    double fEulerAngleBeta;
-    double fEulerAngleGamma;
-    int fNModule;
-    double fModuleSpacing;
-    double fScintillatorWidth;
-    double fScintillatorThickness;
-    bool fUseFastLGA;
-    double fLGACellWidth;
-    int fNLGACellXY;
-    double fLGAThickness;
+    Simple<muc::array3d> fPosition;
+    Simple<double> fEulerAngleAlpha;
+    Simple<double> fEulerAngleBeta;
+    Simple<double> fEulerAngleGamma;
+    Simple<int> fNModule;
+    Simple<double> fModuleSpacing;
+    Simple<double> fScintillatorWidth;
+    Simple<double> fScintillatorThickness;
+    Simple<bool> fUseFastLGA;
+    Simple<double> fLGACellWidth;
+    Simple<int> fNLGACellX;
+    Simple<int> fNLGACellY;
+    Simple<double> fLGAThickness;
+    Cached<HepGeom::Rotate3D> fRotation;
     // Detection
-    double fEnergyDepositionThreshold;
-    double fTimeResolutionFWHM;
+    Simple<double> fEnergyDepositionThreshold;
+    Simple<double> fTimeResolutionFWHM;
+    // Digitization
+    Simple<int> fNChannelPerChip;
+    Simple<std::unordered_map<int, int>> fChipMap;                              // chipID -> moduleID
+    Simple<std::unordered_map<int, std::pair<char, int>>> fPerModuleChannelMap; // moduleChannelID -> {edge, edgeFiberID}
+    Cached<std::vector<int>> fInverseChipMap;                                   // moduleID -> chipID
+    Cached<std::map<BasicChInfo, int>> fInverseChannelMap;                      // {moduleID, edge, edgeFiberID} -> channelID
+    Cached<std::unordered_map<int, ChInfo>> fChannelInfo;                       // channelID -> channel info
 };
 
 } // namespace Musae::Detector::Description
