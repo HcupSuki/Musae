@@ -1,3 +1,4 @@
+#include "Musae/SimFlux/Messenger/PhysicsMessenger.h++"
 #include "Musae/SimFlux/PhysicsList.h++"
 
 #include "Mustard/Env/BasicEnv.h++"
@@ -22,10 +23,12 @@ using namespace Mustard::LiteralUnit::Length;
 PhysicsList::PhysicsList() :
     PassiveSingleton{},
     FTFP_BERT{std::max({}, muc::to_underlying(Mustard::Env::BasicEnv::Instance().VerboseLevel()))},
-    fPhysicsMessengerRegister{this} {
+    fPhysicsMessengerRegister{std::in_place_type<PhysicsMessenger::Register<PhysicsList>>, this} {
     SetDefaultCutValue(30_cm);
     ReplacePhysics(new G4EmStandardPhysics_option1{verboseLevel});
 }
+
+PhysicsList::~PhysicsList() = default;
 
 auto PhysicsList::NonMuonProcessActivation(bool active) -> void {
     const auto particleTable{G4ParticleTable::GetParticleTable()};

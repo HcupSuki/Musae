@@ -1,5 +1,4 @@
 #include "Musae/SimFlux/Messenger/PhysicsMessenger.h++"
-#include "Musae/SimFlux/PhysicsList.h++"
 
 #include "G4UIcmdWithABool.hh"
 

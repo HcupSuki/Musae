@@ -1,19 +1,15 @@
 #pragma once
 
+#include "Musae/SimFlux/Action/SteppingAction.h++"
+#include "Musae/SimFlux/PhysicsList.h++"
+
 #include "Mustard/Extension/Geant4X/Interface/SingletonMessenger.h++"
 
 #include <memory>
 
 class G4UIcmdWithABool;
 
-namespace Musae::SimFlux {
-
-inline namespace Action {
-class SteppingAction;
-} // namespace Action
-class PhysicsList;
-
-inline namespace Messenger {
+namespace Musae::SimFlux::inline Messenger {
 
 class PhysicsMessenger final : public Mustard::Geant4X::SingletonMessenger<PhysicsMessenger,
                                                                            PhysicsList,
@@ -31,6 +27,4 @@ private:
     std::unique_ptr<G4UIcmdWithABool> fNonMuonProcessActivation;
 };
 
-} // namespace Messenger
-
-} // namespace Musae::SimFlux
+} // namespace Musae::SimFlux::inline Messenger

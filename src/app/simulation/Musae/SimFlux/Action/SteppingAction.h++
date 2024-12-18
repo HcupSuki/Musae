@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Musae/SimFlux/Messenger/PhysicsMessenger.h++"
-
 #include "Mustard/Env/Memory/PassiveSingleton.h++"
 
 #include "G4UserSteppingAction.hh"
+
+#include <any>
 
 namespace Musae::SimFlux::inline Action {
 
@@ -12,6 +12,7 @@ class SteppingAction final : public Mustard::Env::Memory::PassiveSingleton<Stepp
                              public G4UserSteppingAction {
 public:
     SteppingAction();
+    ~SteppingAction();
 
     auto EnableNonMuonKiller(bool val) -> void { fEnableNonMuonKiller = val; }
 
@@ -20,7 +21,7 @@ public:
 private:
     bool fEnableNonMuonKiller;
 
-    PhysicsMessenger::Register<SteppingAction> fPhysicsMessengerRegister;
+    std::any fPhysicsMessengerRegister;
 };
 
 } // namespace Musae::SimFlux::inline Action
