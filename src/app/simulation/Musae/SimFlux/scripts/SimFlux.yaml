@@ -1,0 +1,217 @@
+# SimFlux: geometry description
+
+LGA:
+  Position:
+    - 0
+    - 0
+    - 0
+  EulerAngleAlpha: 0
+  EulerAngleBeta: 0
+  EulerAngleGamma: 0
+  NModule: 3
+  ModuleSpacing: 150
+  ScintillatorWidth: 300
+  ScintillatorThickness: 10
+  UseFastLGA: true
+  LGACellWidth: 10
+  NLGACellX: 27
+  NLGACellY: 27
+  LGAThickness: 10
+  EnergyDepositionThreshold: 0.01
+  TimeResolutionFWHM: 1
+  ChipMap:
+    4: 2
+    1: 1
+    0: 0
+  PerModuleChannelMap:
+    58:
+      - y
+      - 24
+    54:
+      - y
+      - 22
+    53:
+      - y
+      - 21
+    52:
+      - y
+      - 20
+    51:
+      - y
+      - 19
+    50:
+      - y
+      - 18
+    38:
+      - y
+      - 17
+    27:
+      - y
+      - 16
+    15:
+      - y
+      - 15
+    14:
+      - y
+      - 14
+    13:
+      - y
+      - 13
+    12:
+      - y
+      - 12
+    11:
+      - y
+      - 11
+    10:
+      - y
+      - 10
+    9:
+      - y
+      - 9
+    8:
+      - y
+      - 8
+    7:
+      - y
+      - 7
+    6:
+      - y
+      - 6
+    5:
+      - y
+      - 5
+    4:
+      - y
+      - 4
+    62:
+      - y
+      - 25
+    3:
+      - y
+      - 3
+    61:
+      - y
+      - 26
+    2:
+      - y
+      - 2
+    28:
+      - x
+      - 11
+    26:
+      - x
+      - 10
+    25:
+      - x
+      - 9
+    24:
+      - x
+      - 8
+    23:
+      - x
+      - 7
+    22:
+      - x
+      - 6
+    21:
+      - x
+      - 5
+    20:
+      - x
+      - 4
+    19:
+      - x
+      - 3
+    18:
+      - x
+      - 2
+    17:
+      - x
+      - 1
+    46:
+      - x
+      - 25
+    29:
+      - x
+      - 12
+    59:
+      - y
+      - 23
+    0:
+      - y
+      - 0
+    16:
+      - x
+      - 0
+    30:
+      - x
+      - 13
+    1:
+      - y
+      - 1
+    31:
+      - x
+      - 14
+    32:
+      - x
+      - 15
+    33:
+      - x
+      - 16
+    34:
+      - x
+      - 17
+    35:
+      - x
+      - 18
+    36:
+      - x
+      - 19
+    37:
+      - x
+      - 20
+    40:
+      - x
+      - 21
+    41:
+      - x
+      - 22
+    42:
+      - x
+      - 23
+    44:
+      - x
+      - 24
+    39:
+      - x
+      - 26
+Terrain:
+  ElevationDataPath: terrain
+  Projection: UTM 50N
+  ReferenceLatitude: 25.109999999999999
+  ReferenceLongitude: 113.65000000000001
+  ReferenceElevation: .nan
+  MinLatitude: 25.099999999999998
+  MaxLatitude: 25.120000000000001
+  MinLongitude: 113.64
+  MaxLongitude: 113.66000000000001
+  MinZ: -230000
+  NVertex: 10000
+  RockElement:
+    - Ca
+    - Fe
+    - Al
+    - Si
+    - O
+  RockNAtom:
+    - 3
+    - 1
+    - 1
+    - 3
+    - 12
+  RockDensity: 1.8724527223382286e+19
+World:
+  HalfXExtent: 100000000
+  HalfYExtent: 100000000
+  HalfZExtent: 10000000
