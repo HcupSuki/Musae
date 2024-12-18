@@ -22,6 +22,7 @@ class CLI;
 class Generator {
 public:
     Generator(const CLI& cli);
+    ~Generator();
 
     auto operator()() -> std::unique_ptr<G4Event>;
 

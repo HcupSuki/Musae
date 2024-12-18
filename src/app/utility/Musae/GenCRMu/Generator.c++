@@ -47,6 +47,8 @@ Generator::Generator(const CLI& cli) :
     Mustard::MasterPrint("{}", fInformation);
 }
 
+Generator::~Generator() = default;
+
 auto Generator::operator()() -> std::unique_ptr<G4Event> {
     std::unique_ptr<G4Event> event;
     double probability;
