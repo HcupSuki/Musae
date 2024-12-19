@@ -46,12 +46,15 @@ LGA::LGA() : // clang-format off
     fNChannelPerChip{this, 64},
     fChipMap{this, {}},
     fPerModuleChannelMap{this, {}},
+    fCoincidenceTimeWindow{this, 40_ns},
     fInverseChipMap{this, [this] { return CalculateInverseChipMap(); }},
     fInverseChannelMap{this, [this] { return CalculateInverseChannelMap(); }},
-    fChannelInfo{this, [this] { return CalculateChannelInfo(); }} {
+    fChannelInfo{this, [this] { return CalculateChannelInfo(); }},
+    // Analysis
+    fNLuminousFiberThresholdPerDirection{this, 2} {
     // Initialize map
     fChipMap = {
-        {0, 0},
+        {5, 0},
         {1, 1},
         {4, 2}
     };
@@ -124,13 +127,12 @@ auto LGA::Transform(int moduleID, double zShift) const -> HepGeom::Transform3D {
 auto LGA::ChannelInfo(int channelID) const -> const ChInfo& {
     try {
         return fChannelInfo->at(channelID);
-    } catch (const std::out_of_range& oor) {
-        Mustard::PrintError(fmt::format("Channel ID {} not found in channel map", channelID));
-        throw oor;
+    } catch (const std::out_of_range&) {
+        Mustard::Throw<std::out_of_range>(fmt::format("Channel ID {} not found in channel map", channelID));
     }
 }
 
-auto LGA::LocalIntersection(int chID1, int chID2) const -> HepGeom::Point3D<double> {
+auto LGA::Intersection(int chID1, int chID2) const -> muc::array2d {
     const auto& chInfo1{ChannelInfo(chID1)};
     const auto& chInfo2{ChannelInfo(chID2)};
     if (chInfo1.moduleID != chInfo2.moduleID) {
@@ -143,12 +145,10 @@ auto LGA::LocalIntersection(int chID1, int chID2) const -> HepGeom::Point3D<doub
     }
     if (edge1 == 'x') {
         return {chInfo1.edgePosition,
-                chInfo2.edgePosition,
-                chInfo1.moduleID * fModuleSpacing};
+                chInfo2.edgePosition};
     } else { // edge2 == 'x'
         return {chInfo2.edgePosition,
-                chInfo1.edgePosition,
-                chInfo1.moduleID * fModuleSpacing};
+                chInfo1.edgePosition};
     }
 }
 
@@ -178,9 +178,9 @@ auto LGA::CalculateInverseChipMap() const -> std::vector<int> {
 }
 
 auto LGA::CalculateInverseChannelMap() const -> std::map<BasicChInfo, int> {
-    if (ssize(*fPerModuleChannelMap) != NLGACellX() * NLGACellY()) {
-        Mustard::Throw<std::runtime_error>(fmt::format("Per module channel map has size of {}, but it should be of size {}*{}={}",
-                                                       fPerModuleChannelMap->size(), NLGACellX(), NLGACellY(), NLGACellX() * NLGACellY()));
+    if (ssize(*fPerModuleChannelMap) != NLGACellX() + NLGACellY()) {
+        Mustard::Throw<std::runtime_error>(fmt::format("Per module channel map has size of {}, but it should be of size {}+{}={}",
+                                                       fPerModuleChannelMap->size(), NLGACellX(), NLGACellY(), NLGACellX() + NLGACellY()));
     }
 
     std::map<BasicChInfo, int> inverseMap;
@@ -188,9 +188,8 @@ auto LGA::CalculateInverseChannelMap() const -> std::map<BasicChInfo, int> {
         const auto chipID{[&] {
             try {
                 return fInverseChipMap->at(moduleID);
-            } catch (const std::out_of_range& oor) {
-                Mustard::PrintError(fmt::format("Module ID {} not found in chip map", moduleID));
-                throw oor;
+            } catch (const std::out_of_range&) {
+                Mustard::Throw<std::out_of_range>(fmt::format("Module ID {} not found in chip map", moduleID));
             }
         }()};
         for (auto&& [moduleChannelID, edgeAndEdgeFiberID] : std::as_const(*fPerModuleChannelMap)) {
@@ -201,7 +200,7 @@ auto LGA::CalculateInverseChannelMap() const -> std::map<BasicChInfo, int> {
         }
     }
 
-    if (ssize(inverseMap) != NModule() * NLGACellX() * NLGACellY()) {
+    if (ssize(inverseMap) != NModule() * (NLGACellX() + NLGACellY())) {
         Mustard::Throw<std::runtime_error>("Channel map is not a bijection");
     }
     return inverseMap;
@@ -269,8 +268,11 @@ auto LGA::ImportAllValue(const YAML::Node& node) -> void {
     ImportValue(node, fLGAThickness, "LGAThickness");
     ImportValue(node, fEnergyDepositionThreshold, "EnergyDepositionThreshold");
     ImportValue(node, fTimeResolutionFWHM, "TimeResolutionFWHM");
+    ImportValue(node, fNChannelPerChip, "NChannelPerChip");
+    ImportValue(node, fCoincidenceTimeWindow, "CoincidenceTimeWindow");
     ImportValue(node, fChipMap, "ChipMap");
     ImportValue(node, fPerModuleChannelMap, "PerModuleChannelMap");
+    ImportValue(node, fNLuminousFiberThresholdPerDirection, "NLuminousFiberThresholdPerDirection");
 }
 
 auto LGA::ExportAllValue(YAML::Node& node) const -> void {
@@ -289,8 +291,11 @@ auto LGA::ExportAllValue(YAML::Node& node) const -> void {
     ExportValue(node, fLGAThickness, "LGAThickness");
     ExportValue(node, fEnergyDepositionThreshold, "EnergyDepositionThreshold");
     ExportValue(node, fTimeResolutionFWHM, "TimeResolutionFWHM");
+    ExportValue(node, fNChannelPerChip, "NChannelPerChip");
+    ExportValue(node, fCoincidenceTimeWindow, "CoincidenceTimeWindow");
     ExportValue(node, fChipMap, "ChipMap");
     ExportValue(node, fPerModuleChannelMap, "PerModuleChannelMap");
+    ExportValue(node, fNLuminousFiberThresholdPerDirection, "NLuminousFiberThresholdPerDirection");
 }
 
 } // namespace Musae::Detector::Description

@@ -2,7 +2,6 @@
 
 #include "Mustard/Detector/Description/DescriptionWithCacheBase.h++"
 
-#include "CLHEP/Geometry/Point3D.h"
 #include "CLHEP/Geometry/Transform3D.h"
 
 #include "muc/array"
@@ -65,7 +64,12 @@ public:
 
     // Digitization
 
-private:
+    auto NChannelPerChip() const -> auto { return *fNChannelPerChip; }
+    auto CoincidenceTimeWindow() const -> auto { return *fCoincidenceTimeWindow; }
+
+    auto NChannelPerChip(int val) -> void { fNChannelPerChip = val; }
+    auto CoincidenceTimeWindow(double val) -> void { fCoincidenceTimeWindow = val; }
+
     struct BasicChInfo {
         int moduleID;
         char edge; // 'x' or 'y'
@@ -78,14 +82,14 @@ private:
         double edgePosition;
     };
 
-public:
-    auto NChannelPerChip() const -> auto { return *fNChannelPerChip; }
-
-    auto NChannelPerChip(int val) -> void { fNChannelPerChip = val; }
-
     auto ChannelInfo(int channelID) const -> const ChInfo&;
-    auto LocalIntersection(int chID1, int chID2) const -> HepGeom::Point3D<double>;
-    auto Intersection(int chID1, int chID2) const -> auto { return Rotation() * LocalIntersection(chID1, chID2); }
+    auto Intersection(int chID1, int chID2) const -> muc::array2d;
+
+    // Analysis
+
+    auto NLuminousFiberThresholdPerDirection() const -> auto { return *fNLuminousFiberThresholdPerDirection; }
+
+    auto NLuminousFiberThresholdPerDirection(int val) -> void { fNLuminousFiberThresholdPerDirection = val; }
 
 private:
     // Geometry
@@ -127,9 +131,12 @@ private:
     Simple<int> fNChannelPerChip;
     Simple<std::unordered_map<int, int>> fChipMap;                              // chipID -> moduleID
     Simple<std::unordered_map<int, std::pair<char, int>>> fPerModuleChannelMap; // moduleChannelID -> {edge, edgeFiberID}
-    Cached<std::vector<int>> fInverseChipMap;                                   // moduleID -> chipID
-    Cached<std::map<BasicChInfo, int>> fInverseChannelMap;                      // {moduleID, edge, edgeFiberID} -> channelID
-    Cached<std::unordered_map<int, ChInfo>> fChannelInfo;                       // channelID -> channel info
+    Simple<double> fCoincidenceTimeWindow;
+    Cached<std::vector<int>> fInverseChipMap;              // moduleID -> chipID
+    Cached<std::map<BasicChInfo, int>> fInverseChannelMap; // {moduleID, edge, edgeFiberID} -> channelID
+    Cached<std::unordered_map<int, ChInfo>> fChannelInfo;  // channelID -> channel info
+    // Analysis
+    Simple<int> fNLuminousFiberThresholdPerDirection;
 };
 
 } // namespace Musae::Detector::Description
