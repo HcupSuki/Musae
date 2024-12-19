@@ -13,6 +13,7 @@ using LGAHit = Mustard::Data::TupleModel<
     Mustard::Data::Value<short, "ModID", "Hit module ID">,
     Mustard::Data::Value<double, "t", "Hit time">,
     Mustard::Data::Value<muc::array2f, "x", "Hit position">,
-    Mustard::Data::Value<float, "Edep", "Energy deposition">>;
+    Mustard::Data::Value<float, "Edep", "Energy deposition">,
+    Mustard::Data::Value<muc::array2i16, "nLuminous", "Number of luminous WLS fibers per direction">>;
 
 } // namespace Musae::Data
