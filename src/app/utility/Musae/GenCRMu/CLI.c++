@@ -2,10 +2,8 @@
 
 #include "G4SystemOfUnits.hh"
 
-#include "fmt/core.h"
-
 #include <cassert>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace Musae::GenCRMu {
@@ -20,30 +18,20 @@ CLIModule::CLIModule(argparse::ArgumentParser& argParser) :
         .help("Number of events to generate.");
 
     ArgParser()
-        .add_argument("-o", "--output")
-        .required()
-        .help("Output file path.");
-    ArgParser()
-        .add_argument("-m", "--output-mode")
-        .default_value("NEW"s)
-        .nargs(1)
-        .help("Output file creation mode.");
-
-    ArgParser()
         .add_argument("-h", "--primary-z")
-        .scan<'g', double>()
         .required()
+        .scan<'g', double>()
         .help("Z coordinate of primary muons (m).");
     ArgParser()
         .add_argument("-t", "--target-center")
         .nargs(3)
-        .scan<'g', double>()
         .required()
+        .scan<'g', double>()
         .help("Position of the target half sphere (m).");
     ArgParser()
         .add_argument("-r", "--target-radius")
-        .scan<'g', double>()
         .required()
+        .scan<'g', double>()
         .help("Radius of the target half sphere (m).");
 
     ArgParser()

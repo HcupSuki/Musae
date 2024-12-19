@@ -4,18 +4,16 @@
 #include "Mustard/Env/CLI/Module/BasicModule.h++"
 #include "Mustard/Env/CLI/Module/ModuleBase.h++"
 #include "Mustard/Env/CLI/Module/MonteCarloModule.h++"
+#include "Mustard/Env/CLI/Module/OutputFileModule.h++"
 
 #include "CLHEP/Units/SystemOfUnits.h"
 
 #include "argparse/argparse.hpp"
 
 #include "muc/array"
-#include "muc/ceta_string"
 
-#include <algorithm>
 #include <filesystem>
 #include <string>
-#include <string_view>
 
 namespace Musae::GenCRMu {
 
@@ -24,9 +22,6 @@ public:
     CLIModule(argparse::ArgumentParser& argParser);
 
     auto NEvent() const -> auto { return ArgParser().get<long long>("n"); }
-
-    auto OutputFilePath() const -> auto { return std::filesystem::path{ArgParser().get("-o")}.replace_extension(".root"); }
-    auto OutputFileMode() const -> auto { return ArgParser().get("-m"); }
 
     auto PrimaryZ() const -> auto { return ArgParser().get<double>("-h") * CLHEP::m; }
     auto TargetCenter() const -> muc::array3d;
@@ -42,6 +37,7 @@ public:
 
 class CLI : public Mustard::Env::CLI::CLI<Mustard::Env::CLI::BasicModule,
                                           Mustard::Env::CLI::MonteCarloModule,
+                                          Mustard::Env::CLI::OutputFileModule,
                                           CLIModule> {};
 
 } // namespace Musae::GenCRMu
