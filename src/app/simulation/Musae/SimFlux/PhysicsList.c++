@@ -21,7 +21,7 @@ namespace Musae::SimFlux {
 using namespace Mustard::LiteralUnit::Length;
 
 PhysicsList::PhysicsList() :
-    PassiveSingleton{},
+    PassiveSingleton{this},
     FTFP_BERT{std::max({}, muc::to_underlying(Mustard::Env::BasicEnv::Instance().VerboseLevel()))},
     fPhysicsMessengerRegister{std::in_place_type<PhysicsMessenger::Register<PhysicsList>>, this} {
     SetDefaultCutValue(30_cm);

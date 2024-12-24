@@ -7,6 +7,9 @@
 
 namespace Musae::SimFlux {
 
+Analysis::Analysis() :
+    AnalysisBase{this} {}
+
 auto Analysis::RunBeginUserAction(int runID) -> void {
     fLGASimHitOutput.emplace(fmt::format("G4Run{}/LGASimHit", runID));
     fCRMuSimEventOutput.emplace(fmt::format("G4Run{}/CRMuSimEvent", runID));

@@ -25,6 +25,8 @@ namespace Musae::SimFlux {
 
 class Analysis final : public Mustard::Simulation::AnalysisBase<Analysis, "SimFlux"> {
 public:
+    Analysis();
+
     auto SubmitLGAHitData(const std::vector<gsl::owner<LGAFastDigi*>>& dc) -> void { fLGAHitData = &dc; }
 
 private:

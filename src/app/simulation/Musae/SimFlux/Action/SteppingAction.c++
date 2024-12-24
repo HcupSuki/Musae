@@ -12,7 +12,7 @@
 namespace Musae::SimFlux::inline Action {
 
 SteppingAction::SteppingAction() :
-    PassiveSingleton{},
+    PassiveSingleton{this},
     G4UserSteppingAction{},
     fEnableNonMuonKiller{},
     fPhysicsMessengerRegister{std::in_place_type<PhysicsMessenger::Register<SteppingAction>>, this} {}

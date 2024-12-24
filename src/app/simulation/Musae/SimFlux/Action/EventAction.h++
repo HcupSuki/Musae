@@ -9,6 +9,8 @@ namespace Musae::SimFlux::inline Action {
 class EventAction final : public Mustard::Env::Memory::PassiveSingleton<EventAction>,
                           public G4UserEventAction {
 public:
+    EventAction();
+
     auto EndOfEventAction(const G4Event*) -> void override;
 };
 

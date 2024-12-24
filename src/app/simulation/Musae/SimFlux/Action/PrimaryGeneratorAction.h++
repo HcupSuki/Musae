@@ -10,6 +10,8 @@ namespace Musae::SimFlux::inline Action {
 class PrimaryGeneratorAction final : public Mustard::Env::Memory::PassiveSingleton<PrimaryGeneratorAction>,
                                      public G4VUserPrimaryGeneratorAction {
 public:
+    PrimaryGeneratorAction();
+
     auto GeneratePrimaries(G4Event* event) -> void override;
 
 private:

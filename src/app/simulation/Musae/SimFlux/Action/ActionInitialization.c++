@@ -6,6 +6,9 @@
 
 namespace Musae::SimFlux::inline Action {
 
+ActionInitialization::ActionInitialization() :
+    PassiveSingleton{this} {}
+
 auto ActionInitialization::Build() const -> void {
     SetUserAction(new RunAction);
     SetUserAction(new EventAction);

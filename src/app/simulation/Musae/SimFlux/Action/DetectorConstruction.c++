@@ -8,7 +8,7 @@
 namespace Musae::SimFlux::inline Action {
 
 DetectorConstruction::DetectorConstruction(bool checkOverlap) :
-    PassiveSingleton{},
+    PassiveSingleton{this},
     G4VUserDetectorConstruction{},
     fCheckOverlap{checkOverlap} {
     DetectorMessenger::EnsureInstantiation();

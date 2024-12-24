@@ -3,6 +3,9 @@
 
 namespace Musae::SimFlux::inline Action {
 
+EventAction::EventAction() :
+    PassiveSingleton{this} {}
+
 auto EventAction::EndOfEventAction(const G4Event*) -> void {
     Analysis::Instance().EventEndAction();
 }
