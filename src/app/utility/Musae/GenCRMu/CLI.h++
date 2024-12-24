@@ -4,7 +4,6 @@
 #include "Mustard/Env/CLI/Module/BasicModule.h++"
 #include "Mustard/Env/CLI/Module/ModuleBase.h++"
 #include "Mustard/Env/CLI/Module/MonteCarloModule.h++"
-#include "Mustard/Env/CLI/Module/OutputFileModule.h++"
 
 #include "CLHEP/Units/SystemOfUnits.h"
 
@@ -21,8 +20,6 @@ class CLIModule : public Mustard::Env::CLI::ModuleBase {
 public:
     CLIModule(argparse::ArgumentParser& argParser);
 
-    auto NEvent() const -> auto { return ArgParser().get<long long>("n"); }
-
     auto PrimaryZ() const -> auto { return ArgParser().get<double>("-h") * CLHEP::m; }
     auto TargetCenter() const -> muc::array3d;
     auto TargetRadius() const -> auto { return ArgParser().get<double>("-r") * CLHEP::m; }
@@ -37,7 +34,6 @@ public:
 
 class CLI : public Mustard::Env::CLI::CLI<Mustard::Env::CLI::BasicModule,
                                           Mustard::Env::CLI::MonteCarloModule,
-                                          Mustard::Env::CLI::OutputFileModule,
                                           CLIModule> {};
 
 } // namespace Musae::GenCRMu

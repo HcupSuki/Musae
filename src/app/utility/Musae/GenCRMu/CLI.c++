@@ -13,11 +13,6 @@ using namespace std::string_literals;
 CLIModule::CLIModule(argparse::ArgumentParser& argParser) :
     ModuleBase{argParser} {
     ArgParser()
-        .add_argument("n")
-        .scan<'i', long long>()
-        .help("Number of events to generate.");
-
-    ArgParser()
         .add_argument("-h", "--primary-z")
         .required()
         .scan<'g', double>()

@@ -30,26 +30,30 @@
 
 auto main(int argc, char* argv[]) -> int {
     Musae::GenCRMu::CLI cli;
+    cli->add_argument("n").help("Number of events to generate.").nargs(1).scan<'i', unsigned long long>();
+    cli->add_argument("-o", "--output").help("Output file path.").required().nargs(1);
+    cli->add_argument("--output-mode").help("Output file creation mode.").required().nargs(1).default_value("NEW");
     Mustard::Env::MPIEnv env{argc, argv, cli};
 
     Mustard::UseXoshiro<512> random;
     cli.SeedRandomIfFlagged();
 
     // Open file
-    const auto filePath{Mustard::MPIX::ParallelizePath(cli.OutputFilePath()).generic_string()};
-    TFile file{filePath.c_str(), cli.OutputFileMode().c_str()};
+    const auto filePath{Mustard::MPIX::ParallelizePath(cli->get("-o")).generic_string()};
+    TFile file{filePath.c_str(), cli->get("--output-mode").c_str()};
     if (not file.IsOpen()) {
         return EXIT_FAILURE;
     }
 
     // Generate events
+    const auto nEvent{cli->get<unsigned long long>("-n")};
     Musae::GenCRMu::Generator generator{cli};
-    Mustard::MasterPrintLn("Generating {} weighted events...", cli.NEvent());
+    Mustard::MasterPrintLn("Generating {} weighted events...", nEvent);
     long double weightSum{};
     long double weight2Sum{};
     Mustard::Data::Output<Musae::GenCRMu::CRMuEvent> dataOut{"CRMu", "Cosmic ray muon event"};
-    Mustard::MPIX::Executor<long long>{"Generation", "Sample"}
-        .Execute(cli.NEvent(),
+    Mustard::MPIX::Executor<unsigned long long>{"Generation", "Sample"}
+        .Execute(nEvent,
                  [&](auto) {
                      const auto event{generator()};
                      const auto weight{event->GetPrimaryVertex()->GetWeight()};
@@ -75,11 +79,11 @@ auto main(int argc, char* argv[]) -> int {
             "- {}Correspond to {:.6} +/- {:.3} seconds wall time (estimated from 129 Hz/m2 horizontal flux), or\n"
             "- {}{:.6} +/- {:.3} seconds per weighted event, or\n"
             "- {}{:.6} +/- {:.3} weighted event per seconds.\n",
-            cli.NEvent(), nEff, ok ? "(OK)" : "(**BAD**)",
+            nEvent, nEff, ok ? "(OK)" : "(**BAD**)",
             ok ? "" : "(**INACCURATE**) ", weightSum, weightSumError,
             ok ? "" : "(**INACCURATE**) ", estimatedSeconds, estimatedSecondsError,
-            ok ? "" : "(**INACCURATE**) ", estimatedSeconds / cli.NEvent(), estimatedSecondsError / cli.NEvent(),
-            ok ? "" : "(**INACCURATE**) ", cli.NEvent() / estimatedSeconds, cli.NEvent() / muc::pow<2>(estimatedSeconds) * estimatedSecondsError)};
+            ok ? "" : "(**INACCURATE**) ", estimatedSeconds / nEvent, estimatedSecondsError / nEvent,
+            ok ? "" : "(**INACCURATE**) ", nEvent / estimatedSeconds, nEvent / muc::pow<2>(estimatedSeconds) * estimatedSecondsError)};
         Mustard::Print("Generation completed, {}"
                        "(The above information will be saved to '{}')\n",
                        info, filePath);
