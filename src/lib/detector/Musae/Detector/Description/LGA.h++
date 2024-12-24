@@ -53,6 +53,8 @@ public:
     auto Rotation() const -> const auto& { return *fRotation; }
     auto Transform(double zLocal) const -> HepGeom::Transform3D;
     auto Transform(int moduleID, double zShift = 0) const -> HepGeom::Transform3D;
+    auto FiberX(int fiberLocalID) const -> double;
+    auto FiberY(int fiberLocalID) const -> double;
 
     // Detection
 
@@ -73,7 +75,7 @@ public:
     struct BasicChInfo {
         int moduleID;
         char edge; // 'x' or 'y'
-        int edgeFiberID;
+        int fiberLocalID;
         constexpr auto operator<=>(const BasicChInfo&) const = default;
     };
 
@@ -103,7 +105,7 @@ private:
     auto CalculateChannelInfo() const -> std::unordered_map<int, ChInfo>;
 
     auto CheckModuleIDFromChipMap(int moduleID) const -> void;
-    auto CheckEdgeFiberIDFromChannelMap(char edge, int edgeFiberID) const -> void;
+    auto CheckEdgeFiberIDFromChannelMap(char edge, int fiberLocalID) const -> void;
 
     auto ImportAllValue(const YAML::Node& node) -> void override;
     auto ExportAllValue(YAML::Node& node) const -> void override;
@@ -130,10 +132,10 @@ private:
     // Digitization
     Simple<int> fNChannelPerChip;
     Simple<std::unordered_map<int, int>> fChipMap;                              // chipID -> moduleID
-    Simple<std::unordered_map<int, std::pair<char, int>>> fPerModuleChannelMap; // moduleChannelID -> {edge, edgeFiberID}
+    Simple<std::unordered_map<int, std::pair<char, int>>> fPerModuleChannelMap; // moduleChannelID -> {edge, fiberLocalID}
     Simple<double> fCoincidenceTimeWindow;
     Cached<std::vector<int>> fInverseChipMap;              // moduleID -> chipID
-    Cached<std::map<BasicChInfo, int>> fInverseChannelMap; // {moduleID, edge, edgeFiberID} -> channelID
+    Cached<std::map<BasicChInfo, int>> fInverseChannelMap; // {moduleID, edge, fiberLocalID} -> channelID
     Cached<std::unordered_map<int, ChInfo>> fChannelInfo;  // channelID -> channel info
     // Analysis
     Simple<int> fNLuminousFiberThresholdPerDirection;

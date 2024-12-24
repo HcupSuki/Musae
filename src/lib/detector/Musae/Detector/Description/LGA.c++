@@ -51,7 +51,7 @@ LGA::LGA() : // clang-format off
     fInverseChannelMap{this, [this] { return CalculateInverseChannelMap(); }},
     fChannelInfo{this, [this] { return CalculateChannelInfo(); }},
     // Analysis
-    fNLuminousFiberThresholdPerDirection{this, 2} {
+    fNLuminousFiberThresholdPerDirection{this, 3} {
     // Initialize map
     fChipMap = {
         {5, 0},
@@ -124,6 +124,14 @@ auto LGA::Transform(int moduleID, double zShift) const -> HepGeom::Transform3D {
     return Transform(Position()[2] + moduleID * fModuleSpacing + zShift);
 }
 
+auto LGA::FiberX(int fiberLocalID) const -> double {
+    return LGACellWidth() * (2 * fiberLocalID + 1 - NLGACellX()) / 2;
+}
+
+auto LGA::FiberY(int fiberLocalID) const -> double {
+    return LGACellWidth() * (2 * fiberLocalID + 1 - NLGACellY()) / 2;
+}
+
 auto LGA::ChannelInfo(int channelID) const -> const ChInfo& {
     try {
         return fChannelInfo->at(channelID);
@@ -193,10 +201,10 @@ auto LGA::CalculateInverseChannelMap() const -> std::map<BasicChInfo, int> {
             }
         }()};
         for (auto&& [moduleChannelID, edgeAndEdgeFiberID] : std::as_const(*fPerModuleChannelMap)) {
-            const auto& [edge, edgeFiberID]{edgeAndEdgeFiberID};
-            CheckEdgeFiberIDFromChannelMap(edge, edgeFiberID);
+            const auto& [edge, fiberLocalID]{edgeAndEdgeFiberID};
+            CheckEdgeFiberIDFromChannelMap(edge, fiberLocalID);
             auto channelID{chipID * NChannelPerChip() + moduleChannelID};
-            inverseMap[{moduleID, edge, edgeFiberID}] = channelID;
+            inverseMap[{moduleID, edge, fiberLocalID}] = channelID;
         }
     }
 
@@ -210,19 +218,15 @@ auto LGA::CalculateChannelInfo() const -> std::unordered_map<int, ChInfo> {
     std::unordered_map<int, ChInfo> channelInfo;
     for (int moduleID{}; moduleID < NModule(); ++moduleID) {
         const auto chipID{fInverseChipMap->at(moduleID)};
-        const auto x0{-LGACellWidth() * (NLGACellX() - 1) / 2};
         for (int i{}; i < NLGACellX(); ++i) {
             const BasicChInfo basicChInfo{moduleID, 'x', i};
             const auto channelID{fInverseChannelMap->at(basicChInfo)};
-            const auto edgePosition{x0 + i * LGACellWidth()};
-            channelInfo[channelID] = {basicChInfo, chipID, edgePosition};
+            channelInfo[channelID] = {basicChInfo, chipID, FiberX(i)};
         }
-        const auto y0{-LGACellWidth() * (NLGACellY() - 1) / 2};
         for (int j{}; j < NLGACellY(); ++j) {
             const BasicChInfo basicChInfo{moduleID, 'y', j};
             const auto channelID{fInverseChannelMap->at(basicChInfo)};
-            const auto edgePosition{y0 + j * LGACellWidth()};
-            channelInfo[channelID] = {basicChInfo, chipID, edgePosition};
+            channelInfo[channelID] = {basicChInfo, chipID, FiberY(j)};
         }
     }
     return channelInfo;
@@ -234,16 +238,16 @@ auto LGA::CheckModuleIDFromChipMap(int moduleID) const -> void {
     }
 }
 
-auto LGA::CheckEdgeFiberIDFromChannelMap(char edge, int edgeFiberID) const -> void {
+auto LGA::CheckEdgeFiberIDFromChannelMap(char edge, int fiberLocalID) const -> void {
     switch (edge) {
     case 'x':
-        if (edgeFiberID >= NLGACellX()) {
-            Mustard::Throw<std::runtime_error>(fmt::format("Fiber ID {} along x edge in channel map is out of range", edgeFiberID));
+        if (fiberLocalID >= NLGACellX()) {
+            Mustard::Throw<std::runtime_error>(fmt::format("Fiber ID {} along x direction in channel map is out of range", fiberLocalID));
         }
         break;
     case 'y':
-        if (edgeFiberID >= NLGACellY()) {
-            Mustard::Throw<std::runtime_error>(fmt::format("Fiber ID {} along y edge in channel map is out of range", edgeFiberID));
+        if (fiberLocalID >= NLGACellY()) {
+            Mustard::Throw<std::runtime_error>(fmt::format("Fiber ID {} along y direction in channel map is out of range", fiberLocalID));
         }
         break;
     default:
