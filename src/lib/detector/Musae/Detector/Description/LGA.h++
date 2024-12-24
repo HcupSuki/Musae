@@ -89,9 +89,13 @@ public:
 
     // Analysis
 
-    auto NLuminousFiberThresholdPerDirection() const -> auto { return *fNLuminousFiberThresholdPerDirection; }
+    auto LuminousDigiEnergyThreshold() const -> auto { return *fLuminousDigiEnergyThreshold; }
+    auto NLuminousDigiThresholdPerDirection() const -> auto { return *fNLuminousDigiThresholdPerDirection; }
+    auto NHitThreshold() const -> auto { return *fNHitThreshold; }
 
-    auto NLuminousFiberThresholdPerDirection(int val) -> void { fNLuminousFiberThresholdPerDirection = val; }
+    auto LuminousDigiEnergyThreshold(double val) -> void { fLuminousDigiEnergyThreshold = val; }
+    auto NLuminousDigiThresholdPerDirection(int val) -> void { fNLuminousDigiThresholdPerDirection = val; }
+    auto NHitThreshold(int val) -> void { fNHitThreshold = val; }
 
 private:
     // Geometry
@@ -138,7 +142,9 @@ private:
     Cached<std::map<BasicChInfo, int>> fInverseChannelMap; // {moduleID, edge, fiberLocalID} -> channelID
     Cached<std::unordered_map<int, ChInfo>> fChannelInfo;  // channelID -> channel info
     // Analysis
-    Simple<int> fNLuminousFiberThresholdPerDirection;
+    Simple<double> fLuminousDigiEnergyThreshold;
+    Simple<int> fNLuminousDigiThresholdPerDirection;
+    Simple<int> fNHitThreshold;
 };
 
 } // namespace Musae::Detector::Description

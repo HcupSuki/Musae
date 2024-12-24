@@ -67,25 +67,21 @@ auto Reconstruct(const std::unordered_map<char, std::vector<const Mustard::Data:
         }
     }
 
+    muc::array2i16 nLuminous{static_cast<std::int16_t>(digiData.at('x').size()),
+                             static_cast<std::int16_t>(digiData.at('y').size())};
+    if (nLuminous[0] < lga.NLuminousDigiThresholdPerDirection() or
+        nLuminous[1] < lga.NLuminousDigiThresholdPerDirection()) {
+        return nullptr;
+    }
+
     std::unique_ptr<Mustard::Data::Tuple<Data::LGAHit>> hit;
     if (method == "Weighted2D") {
         hit = internal::Weighted2D(digiData);
     } else {
         Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
     }
-
-    muc::array2i16 nLuminous{};
-    for (auto&& [edge, digiPerEdge] : digiData) {
-        switch (edge) {
-        case 'x':
-            nLuminous[0] += digiPerEdge.size();
-            break;
-        case 'y':
-            nLuminous[1] += digiPerEdge.size();
-            break;
-        default:
-            Mustard::Throw<std::out_of_range>(fmt::format("No edge named '{}'", edge));
-        }
+    if (hit == nullptr) {
+        return hit;
     }
 
     Get<"EvtID">(*hit) = eventID;

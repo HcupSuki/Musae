@@ -46,16 +46,18 @@ LGA::LGA() : // clang-format off
     fNChannelPerChip{this, 64},
     fChipMap{this, {}},
     fPerModuleChannelMap{this, {}},
-    fCoincidenceTimeWindow{this, 40_ns},
+    fCoincidenceTimeWindow{this, 30_ns},
     fInverseChipMap{this, [this] { return CalculateInverseChipMap(); }},
     fInverseChannelMap{this, [this] { return CalculateInverseChannelMap(); }},
     fChannelInfo{this, [this] { return CalculateChannelInfo(); }},
     // Analysis
-    fNLuminousFiberThresholdPerDirection{this, 3} {
+    fLuminousDigiEnergyThreshold{this, 0.},
+    fNLuminousDigiThresholdPerDirection{this, 3},
+    fNHitThreshold{this, 3} {
     // Initialize map
     fChipMap = {
-        {5, 0},
-        {1, 1},
+        {0, 0},
+        {5, 1},
         {4, 2}
     };
     fPerModuleChannelMap = {
@@ -144,12 +146,12 @@ auto LGA::Intersection(int chID1, int chID2) const -> muc::array2d {
     const auto& chInfo1{ChannelInfo(chID1)};
     const auto& chInfo2{ChannelInfo(chID2)};
     if (chInfo1.moduleID != chInfo2.moduleID) {
-        Mustard::Throw<std::invalid_argument>("Channel {} and {} are not in the same module");
+        Mustard::Throw<std::invalid_argument>(fmt::format("Channel {} and {} are not in the same module", chID1, chID2));
     }
     const auto edge1{muc::tolower(chInfo1.edge)};
     const auto edge2{muc::tolower(chInfo2.edge)};
     if (edge1 == edge2) {
-        Mustard::Throw<std::invalid_argument>("Channel {} and {} are along the same direction");
+        Mustard::Throw<std::invalid_argument>(fmt::format("Channel {} and {} are of the same direction", chID1, chID2));
     }
     if (edge1 == 'x') {
         return {chInfo1.edgePosition,
@@ -276,7 +278,9 @@ auto LGA::ImportAllValue(const YAML::Node& node) -> void {
     ImportValue(node, fCoincidenceTimeWindow, "CoincidenceTimeWindow");
     ImportValue(node, fChipMap, "ChipMap");
     ImportValue(node, fPerModuleChannelMap, "PerModuleChannelMap");
-    ImportValue(node, fNLuminousFiberThresholdPerDirection, "NLuminousFiberThresholdPerDirection");
+    ImportValue(node, fLuminousDigiEnergyThreshold, "LuminousDigiEnergyThreshold");
+    ImportValue(node, fNLuminousDigiThresholdPerDirection, "NLuminousDigiThresholdPerDirection");
+    ImportValue(node, fNHitThreshold, "NHitThreshold");
 }
 
 auto LGA::ExportAllValue(YAML::Node& node) const -> void {
@@ -299,7 +303,9 @@ auto LGA::ExportAllValue(YAML::Node& node) const -> void {
     ExportValue(node, fCoincidenceTimeWindow, "CoincidenceTimeWindow");
     ExportValue(node, fChipMap, "ChipMap");
     ExportValue(node, fPerModuleChannelMap, "PerModuleChannelMap");
-    ExportValue(node, fNLuminousFiberThresholdPerDirection, "NLuminousFiberThresholdPerDirection");
+    ExportValue(node, fLuminousDigiEnergyThreshold, "LuminousDigiEnergyThreshold");
+    ExportValue(node, fNLuminousDigiThresholdPerDirection, "NLuminousDigiThresholdPerDirection");
+    ExportValue(node, fNHitThreshold, "NHitThreshold");
 }
 
 } // namespace Musae::Detector::Description
