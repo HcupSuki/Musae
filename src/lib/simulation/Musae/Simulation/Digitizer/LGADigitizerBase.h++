@@ -7,8 +7,9 @@
 
 #include "G4VDigitizerModule.hh"
 
+#include "muc/hash_map"
+
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace Musae::inline Simulation::inline Digitizer {
@@ -22,7 +23,7 @@ public:
     auto HitMap(const auto& hc) -> void { fHitMap = &hc; }
 
 protected:
-    const std::unordered_map<int, std::vector<LGAHit*>>* fHitMap;
+    const muc::flat_hash_map<int, std::vector<LGAHit*>>* fHitMap;
 };
 
 } // namespace Musae::inline Simulation::inline Digitizer

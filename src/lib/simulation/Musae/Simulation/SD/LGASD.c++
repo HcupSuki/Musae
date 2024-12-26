@@ -51,9 +51,9 @@ auto LGASD::ProcessHits(G4Step* theStep, G4TouchableHistory*) -> G4bool {
     Get<"EvtID">(*hit) = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
     Get<"HitID">(*hit) = -1; // to be determined
     Get<"ModID">(*hit) = modID;
+    Get<"Edep">(*hit) = step.GetTotalEnergyDeposit();
     Get<"t">(*hit) = preStepPoint.GetGlobalTime();
     Get<"x">(*hit) = hitPosition;
-    Get<"Edep">(*hit) = step.GetTotalEnergyDeposit();
     Get<"TrkID">(*hit) = track.GetTrackID();
     Get<"PDGID">(*hit) = particle.GetPDGEncoding();
     Get<"Ek">(*hit) = preStepPoint.GetKineticEnergy();

@@ -16,7 +16,6 @@ auto TruthFitter<AHit, AEvent>::operator()(const std::vector<AHitPointer>& hitDa
     Get<"EvtID">(*event) = Get<"EvtID">(firstHit);
     Get<"HitID">(*event)->reserve(hitData.size());
     for (auto&& hit : hitData) { Get<"HitID">(*event)->emplace_back(Get<"HitID">(*hit)); }
-    Get<"chi2">(*event) = 0;
     Get<"t0">(*event) = Get<"t">(firstHit);
     Get<"x0">(*event) = Get<"x">(firstHit);
     Get<"theta">(*event) = std::atan(std::hypot(p[0], p[1]) / -p[2]);

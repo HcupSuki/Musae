@@ -38,7 +38,7 @@ protected:
 
 protected:
     LGAHitsCollection* fHitsCollection;
-    std::unordered_map<int, std::vector<LGAHit*>> fHitMap;
+    muc::flat_hash_map<int, std::vector<LGAHit*>> fHitMap;
 
     LGASDFilter fFilter;
     std::unique_ptr<LGADigitizerBase> fDigitizer;
