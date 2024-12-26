@@ -88,6 +88,12 @@ IncludeCategories:
   - Regex: '"T.*\.h"'
     Priority: 5
     CaseSensitive: true
+  - Regex: '"Minuit2/.*\.h"'
+    Priority: 5
+    CaseSensitive: true
+  - Regex: '"Math/.*\.h"'
+    Priority: 5
+    CaseSensitive: true
   - Regex: '"G4.*"'
     Priority: 6
     CaseSensitive: true
