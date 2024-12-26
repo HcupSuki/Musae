@@ -1,8 +1,8 @@
 #include "Musae/Detector/Description/LGA.h++"
-#include "Musae/ReconHit/Reconstruct.h++"
+#include "Musae/ReconLGA/ReconstructHit.h++"
 
+#include "Mustard/Math/Statistic.h++"
 #include "Mustard/Utility/PrettyLog.h++"
-#include "Mustard/Utility/VectorArithmeticOperator.h++"
 
 #include "CLHEP/Units/SystemOfUnits.h"
 #include "CLHEP/Vector/TwoVector.h"
@@ -13,52 +13,43 @@
 #include <stdexcept>
 #include <utility>
 
-namespace Musae::ReconHit {
+namespace Musae::ReconLGA {
 
-namespace internal {
 namespace {
+namespace HitReconstruction {
 
-using namespace Mustard::VectorArithmeticOperator;
-
-auto Weighted2D(const std::unordered_map<char, std::vector<const Mustard::Data::Tuple<Data::LGADigi>*>>& digiData)
-    -> std::unique_ptr<Mustard::Data::Tuple<Data::LGAHit>> {
+auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
     const auto& lga{Detector::Description::LGA::Instance()};
 
-    double time{};
-    double totalEnergy{};
+    Mustard::Math::Statistic<1> time;
     for (auto&& [edge, digiPerEdge] : digiData) {
         for (auto&& digi : std::as_const(digiPerEdge)) {
-            const auto energy{Get<"energy">(*digi)};
-            time += energy * (Get<"time">(*digi) * CLHEP::ps);
-            totalEnergy += energy;
+            time.Fill(Get<"time">(*digi), Get<"normalizedEnergy">(*digi));
         }
     }
-    time /= totalEnergy;
 
-    CLHEP::Hep2Vector position{};
-    double positionWeight{};
+    Mustard::Math::Statistic<2> position;
     for (auto&& xDigi : digiData.at('x')) {
         for (auto&& yDigi : digiData.at('y')) {
-            const auto intersection{lga.Intersection(Get<"channelID">(*xDigi), Get<"channelID">(*yDigi))};
-            const auto weight{Get<"energy">(*xDigi) + Get<"energy">(*yDigi)};
-            position += weight * intersection;
-            positionWeight += weight;
+            position.Fill(lga.Intersection(Get<"channelID">(*xDigi), Get<"channelID">(*yDigi)),
+                          Get<"normalizedEnergy">(*xDigi) + Get<"normalizedEnergy">(*yDigi));
         }
     }
-    position /= positionWeight;
 
-    auto hit{std::make_unique_for_overwrite<Mustard::Data::Tuple<Data::LGAHit>>()};
-    Get<"t">(*hit) = time;
-    Get<"x">(*hit) = position;
-    Get<"Edep">(*hit) = totalEnergy;
+    auto hit{std::make_unique_for_overwrite<LGAHit>()};
+    Get<"t">(*hit) = time.Mean();
+    Get<"x">(*hit) = position.Mean();
+    Get<"covX">(*hit) = {static_cast<float>(position.Variance(0)),
+                         static_cast<float>(position.Variance(1)),
+                         static_cast<float>(position.Covariance(0, 1))};
     return hit;
 }
 
+} // namespace HitReconstruction
 } // namespace
-} // namespace internal
 
-auto Reconstruct(const std::unordered_map<char, std::vector<const Mustard::Data::Tuple<Data::LGADigi>*>>& digiData,
-                 int eventID, int hitID, std::string_view method) -> std::unique_ptr<Mustard::Data::Tuple<Data::LGAHit>> {
+auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData,
+                    int eventID, int hitID, std::string_view method) -> std::unique_ptr<LGAHit> {
     const auto& lga{Detector::Description::LGA::Instance()};
     const auto moduleID{lga.ChannelInfo(Get<"channelID">(*digiData.at('x').front())).moduleID};
     for (auto&& [_, digi] : digiData) {
@@ -74,9 +65,9 @@ auto Reconstruct(const std::unordered_map<char, std::vector<const Mustard::Data:
         return nullptr;
     }
 
-    std::unique_ptr<Mustard::Data::Tuple<Data::LGAHit>> hit;
+    std::unique_ptr<LGAHit> hit;
     if (method == "Weighted2D") {
-        hit = internal::Weighted2D(digiData);
+        hit = HitReconstruction::Weighted2D(digiData);
     } else {
         Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
     }
@@ -84,11 +75,19 @@ auto Reconstruct(const std::unordered_map<char, std::vector<const Mustard::Data:
         return hit;
     }
 
+    double eDep{};
+    for (auto&& [_, digiPerEdge] : digiData) {
+        for (auto&& digi : std::as_const(digiPerEdge)) {
+            eDep += Get<"energy">(*digi);
+        }
+    }
+
     Get<"EvtID">(*hit) = eventID;
     Get<"HitID">(*hit) = hitID;
     Get<"ModID">(*hit) = moduleID;
+    Get<"Edep">(*hit) = eDep;
     Get<"nLuminous">(*hit) = nLuminous;
     return hit;
 }
 
-} // namespace Musae::ReconHit
+} // namespace Musae::ReconLGA
