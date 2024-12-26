@@ -5,8 +5,9 @@
 #include "CLHEP/Geometry/Transform3D.h"
 
 #include "muc/array"
+#include "muc/btree_map"
+#include "muc/hash_map"
 
-#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -28,12 +29,13 @@ public:
     auto EulerAngleGamma() const -> auto { return *fEulerAngleGamma; }
     auto NModule() const -> auto { return *fNModule; }
     auto ModuleSpacing() const -> auto { return *fModuleSpacing; }
-    auto ScintillatorWidth() const -> auto { return *fScintillatorWidth; }
+    auto ScintillatorWidthX() const -> auto { return *fScintillatorWidthX; }
+    auto ScintillatorWidthY() const -> auto { return *fScintillatorWidthY; }
     auto ScintillatorThickness() const -> auto { return *fScintillatorThickness; }
     auto UseFastLGA() const -> auto { return *fUseFastLGA; }
     auto LGACellWidth() const -> auto { return *fLGACellWidth; }
-    auto NLGACellX() const -> auto { return *fNLGACellX; }
-    auto NLGACellY() const -> auto { return *fNLGACellY; }
+    auto NFiberX() const -> auto { return *fNFiberX; }
+    auto NFiberY() const -> auto { return *fNFiberY; }
     auto LGAThickness() const -> auto { return *fLGAThickness; }
 
     auto Position(muc::array3d val) -> void { fPosition = val; }
@@ -42,14 +44,18 @@ public:
     auto EulerAngleGamma(double val) -> void { fEulerAngleGamma = val; }
     auto NModule(int val) -> void { fNModule = val; }
     auto ModuleSpacing(double val) -> void { fModuleSpacing = val; }
-    auto ScintillatorWidth(double val) -> void { fScintillatorWidth = val; }
+    auto ScintillatorWidthX(double val) -> void { fScintillatorWidthX = val; }
+    auto ScintillatorWidthY(double val) -> void { fScintillatorWidthY = val; }
     auto ScintillatorThickness(double val) -> void { fScintillatorThickness = val; }
     auto UseFastLGA(bool val) -> void { fUseFastLGA = val; }
     auto LGACellWidth(double val) -> void { fLGACellWidth = val; }
-    auto NLGACellX(int val) -> void { fNLGACellX = val; }
-    auto NLGACellY(int val) -> void { fNLGACellY = val; }
+    auto NFiberX(int val) -> void { fNFiberX = val; }
+    auto NFiberY(int val) -> void { fNFiberY = val; }
     auto LGAThickness(double val) -> void { fLGAThickness = val; }
 
+    auto LGAWidthX() const -> auto { return fNFiberX * fLGACellWidth; }
+    auto LGAWidthY() const -> auto { return fNFiberY * fLGACellWidth; }
+    auto ModuleZ(int moduleID) const -> auto { return moduleID * fModuleSpacing; }
     auto Rotation() const -> const auto& { return *fRotation; }
     auto Transform(double zLocal) const -> HepGeom::Transform3D;
     auto Transform(int moduleID, double zShift = 0) const -> HepGeom::Transform3D;
@@ -84,7 +90,11 @@ public:
         double edgePosition;
     };
 
+    auto ModuleID(int chipID) const -> int;
+    auto ChipID(int moduleID) const -> int;
+    auto ChannelInfo() const -> const auto& { return *fChannelInfo; }
     auto ChannelInfo(int channelID) const -> const ChInfo&;
+    auto TryChannelInfo(int channelID) const -> const ChInfo*;
     auto Intersection(int chID1, int chID2) const -> muc::array2d;
 
     // Analysis
@@ -105,8 +115,8 @@ private:
     // Digitization
 
     auto CalculateInverseChipMap() const -> std::vector<int>;
-    auto CalculateInverseChannelMap() const -> std::map<BasicChInfo, int>;
-    auto CalculateChannelInfo() const -> std::unordered_map<int, ChInfo>;
+    auto CalculateInverseChannelMap() const -> muc::btree_map<BasicChInfo, int>;
+    auto CalculateChannelInfo() const -> muc::flat_hash_map<int, ChInfo>;
 
     auto CheckModuleIDFromChipMap(int moduleID) const -> void;
     auto CheckEdgeFiberIDFromChannelMap(char edge, int fiberLocalID) const -> void;
@@ -122,12 +132,13 @@ private:
     Simple<double> fEulerAngleGamma;
     Simple<int> fNModule;
     Simple<double> fModuleSpacing;
-    Simple<double> fScintillatorWidth;
+    Simple<double> fScintillatorWidthX;
+    Simple<double> fScintillatorWidthY;
     Simple<double> fScintillatorThickness;
     Simple<bool> fUseFastLGA;
     Simple<double> fLGACellWidth;
-    Simple<int> fNLGACellX;
-    Simple<int> fNLGACellY;
+    Simple<int> fNFiberX;
+    Simple<int> fNFiberY;
     Simple<double> fLGAThickness;
     Cached<HepGeom::Rotate3D> fRotation;
     // Detection
@@ -138,9 +149,9 @@ private:
     Simple<std::unordered_map<int, int>> fChipMap;                              // chipID -> moduleID
     Simple<std::unordered_map<int, std::pair<char, int>>> fPerModuleChannelMap; // moduleChannelID -> {edge, fiberLocalID}
     Simple<double> fCoincidenceTimeWindow;
-    Cached<std::vector<int>> fInverseChipMap;              // moduleID -> chipID
-    Cached<std::map<BasicChInfo, int>> fInverseChannelMap; // {moduleID, edge, fiberLocalID} -> channelID
-    Cached<std::unordered_map<int, ChInfo>> fChannelInfo;  // channelID -> channel info
+    Cached<std::vector<int>> fInverseChipMap;                    // moduleID -> chipID
+    Cached<muc::btree_map<BasicChInfo, int>> fInverseChannelMap; // {moduleID, edge, fiberLocalID} -> channelID
+    Cached<muc::flat_hash_map<int, ChInfo>> fChannelInfo;        // channelID -> channel info
     // Analysis
     Simple<double> fLuminousDigiEnergyThreshold;
     Simple<int> fNLuminousDigiThresholdPerDirection;

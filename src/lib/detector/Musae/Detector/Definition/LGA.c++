@@ -19,8 +19,8 @@ auto LGA::Construct(bool checkOverlaps) -> void {
         const auto name{fmt::format("{}Scintillator", lga.Name())};
         const auto solid{Make<G4Box>(
             name,
-            lga.ScintillatorWidth() / 2,
-            lga.ScintillatorWidth() / 2,
+            lga.ScintillatorWidthX() / 2,
+            lga.ScintillatorWidthY() / 2,
             lga.ScintillatorThickness() / 2)};
         const auto logic{Make<G4LogicalVolume>(
             solid,
@@ -39,8 +39,8 @@ auto LGA::Construct(bool checkOverlaps) -> void {
     }
     if (lga.UseFastLGA()) {
         const auto name{lga.Name()};
-        const auto widthX{lga.LGACellWidth() * lga.NLGACellX()};
-        const auto widthY{lga.LGACellWidth() * lga.NLGACellY()};
+        const auto widthX{lga.LGACellWidth() * lga.NFiberX()};
+        const auto widthY{lga.LGACellWidth() * lga.NFiberY()};
         const auto solid{Make<G4Box>(
             name,
             widthX / 2,
