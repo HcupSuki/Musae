@@ -7,9 +7,13 @@
 
 namespace Musae::Data {
 
-using LGADigi = Mustard::Data::TupleModel<
-    Mustard::Data::Value<Long64_t, "time">,
+using LGARawDigi = Mustard::Data::TupleModel<
+    Mustard::Data::Value<double, "time">,
     Mustard::Data::Value<unsigned, "channelID">,
     Mustard::Data::Value<float, "energy">>;
+
+using LGADigi = Mustard::Data::TupleModel<
+    LGARawDigi,
+    Mustard::Data::Value<float, "normalizedEnergy">>;
 
 } // namespace Musae::Data
