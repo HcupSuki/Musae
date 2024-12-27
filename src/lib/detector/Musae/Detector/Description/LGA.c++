@@ -47,7 +47,7 @@ LGA::LGA() : // clang-format off
     fNChannelPerChip{this, 64},
     fChipMap{this, {}},
     fPerModuleChannelMap{this, {}},
-    fCoincidenceTimeWindow{this, 30_ns},
+    fCoincidenceTimeWindow{this, 50_ns},
     fInverseChipMap{this, [this] { return CalculateInverseChipMap(); }},
     fInverseChannelMap{this, [this] { return CalculateInverseChannelMap(); }},
     fChannelInfo{this, [this] { return CalculateChannelInfo(); }},
