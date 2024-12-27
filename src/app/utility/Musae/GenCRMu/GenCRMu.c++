@@ -1,4 +1,5 @@
 #include "Musae/GenCRMu/CLI.h++"
+#include "Musae/GenCRMu/GenCRMu.h++"
 #include "Musae/GenCRMu/Generator.h++"
 
 #include "Mustard/Data/Output.h++"
@@ -28,8 +29,13 @@
 #include <cmath>
 #include <cstdlib>
 
-auto main(int argc, char* argv[]) -> int {
-    Musae::GenCRMu::CLI cli;
+namespace Musae::GenCRMu {
+
+GenCRMu::GenCRMu() :
+    Subprogram{"GenCRMu", "A utility program to generate weighted cosmic-ray muon events."} {}
+
+auto GenCRMu::Main(int argc, char* argv[]) const -> int {
+    CLI cli;
     cli->add_argument("n").help("Number of events to generate.").nargs(1).scan<'i', unsigned long long>();
     cli->add_argument("-o", "--output").help("Output file path.").required().nargs(1);
     cli->add_argument("--output-mode").help("Output file creation mode.").required().nargs(1).default_value("NEW");
@@ -47,11 +53,11 @@ auto main(int argc, char* argv[]) -> int {
 
     // Generate events
     const auto nEvent{cli->get<unsigned long long>("-n")};
-    Musae::GenCRMu::Generator generator{cli};
+    Generator generator{cli};
     Mustard::MasterPrintLn("Generating {} weighted events...", nEvent);
     long double weightSum{};
     long double weight2Sum{};
-    Mustard::Data::Output<Musae::GenCRMu::CRMuEvent> dataOut{"CRMu", "Cosmic ray muon event"};
+    Mustard::Data::Output<CRMuEvent> dataOut{"CRMu", "Cosmic ray muon event"};
     Mustard::MPIX::Executor<unsigned long long>{"Generation", "Sample"}
         .Execute(nEvent,
                  [&](auto) {
@@ -59,7 +65,7 @@ auto main(int argc, char* argv[]) -> int {
                      const auto weight{event->GetPrimaryVertex()->GetWeight()};
                      weightSum += weight;
                      weight2Sum += muc::pow<2>(weight);
-                     dataOut.Fill(Musae::GenCRMu::BackProjection(*event, cli.PrimaryZ()));
+                     dataOut.Fill(BackProjection(*event, cli.PrimaryZ()));
                  });
     dataOut.Write();
     MPI_Allreduce(MPI_IN_PLACE, &weightSum, 1, Mustard::MPIX::DataType(weightSum), MPI_SUM, MPI_COMM_WORLD);
@@ -98,3 +104,5 @@ auto main(int argc, char* argv[]) -> int {
 
     return EXIT_SUCCESS;
 }
+
+} // namespace Musae::GenCRMu

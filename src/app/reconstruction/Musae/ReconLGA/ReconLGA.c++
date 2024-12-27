@@ -3,6 +3,7 @@
 #include "Musae/Detector/Description/LGA.h++"
 #include "Musae/ReconLGA/FormatChannelSummary.h++"
 #include "Musae/ReconLGA/PlotEvent.h++"
+#include "Musae/ReconLGA/ReconLGA.h++"
 #include "Musae/ReconLGA/ReconstructAllHit.h++"
 #include "Musae/ReconLGA/ReconstructCRMu.h++"
 #include "Musae/ReconLGA/ReconstructHit.h++"
@@ -37,10 +38,14 @@
 #include <utility>
 #include <vector>
 
-using namespace Musae::ReconLGA;
+namespace Musae::ReconLGA {
+
+ReconLGA::ReconLGA() :
+    Subprogram{"ReconLGA", "LGA event reconstruction program."} {}
+
 using namespace std::string_literals;
 
-auto main(int argc, char* argv[]) -> int {
+auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     Mustard::Env::CLI::BasicCLI<> cli;
     cli->add_argument("input").help("Input file path(s).").nargs(argparse::nargs_pattern::at_least_one);
     cli->add_argument("-t", "--input-tree").help("Input tree name.").required().nargs(1).default_value("data"s);
@@ -82,13 +87,13 @@ auto main(int argc, char* argv[]) -> int {
     Mustard::PrintLn("Summarizing LGA digi data...");
     ROOT::RDF::Experimental::AddProgressBar(data);
     data.Foreach(
-        [&](Long64_t time, unsigned channelID, float energy) {
+        [&](unsigned channelID, float energy) {
             auto& ch{flatChannelSummary[channelID]};
             ch.channelID = channelID;
             ch.meanEnergy += energy;
             ++ch.triggerCount;
         },
-        {"time", "channelID", "energy"});
+        {"channelID", "energy"});
     Mustard::PrintLn("Completed.");
     for (auto&& [_, ch] : flatChannelSummary) {
         ch.meanEnergy /= ch.triggerCount;
@@ -196,3 +201,5 @@ auto main(int argc, char* argv[]) -> int {
 
     return EXIT_SUCCESS;
 }
+
+} // namespace Musae::ReconLGA

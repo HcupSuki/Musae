@@ -91,5 +91,9 @@ include(${MUSAE_PROJECT_CMAKE_DIR}/LookForPMP.cmake)
 
 # Config for Musae
 include(${MUSAE_PROJECT_CMAKE_DIR}/MusaeCompileConfig.cmake)
-# main content
+# libraries
 add_subdirectory(${PROJECT_SOURCE_DIR})
+# main program
+add_executable(Musae Musae.c++)
+target_link_libraries(Musae MusaeAppReconstruction MusaeAppSimulation MusaeAppUtility)
+install(TARGETS Musae DESTINATION ${CMAKE_INSTALL_BINDIR})
