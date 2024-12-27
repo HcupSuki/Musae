@@ -10,8 +10,7 @@
 namespace Musae::ReconLGA {
 
 // coincident digi -> {event hit, good digi}
-auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
-                       int eventID, std::string_view method)
-    -> std::pair<std::vector<std::unique_ptr<LGAHit>>, LGADigiMap<LGADigi*>>;
+auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi, std::string_view method)
+    -> std::pair<LGADigiMap<LGADigi*>, std::vector<std::unique_ptr<LGAHit>>>;
 
 } // namespace Musae::ReconLGA

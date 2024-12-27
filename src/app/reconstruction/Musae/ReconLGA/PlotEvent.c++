@@ -28,8 +28,8 @@
 namespace Musae::ReconLGA {
 
 auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
-               const std::vector<std::unique_ptr<LGAHit>>& eventHit,
                const LGADigiMap<LGADigi*>& eventDigi,
+               const std::vector<std::unique_ptr<LGAHit>>& eventHit,
                const CRMuEvent* crMuEvent) -> void {
     const auto pwd{TDirectory::CurrentDirectory().load()->GetPath()};
     gFile->cd(gFile->mkdir("LGAHitPlot", "", true)->GetPath());
@@ -70,7 +70,7 @@ auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
         const Eigen::Vector2d d0{d.x(), d.y()};
         for (int i{}; i < lga.NModule(); ++i) {
             const Eigen::Vector2d x{x0 + (lga.ModuleZ(i) / d.z()) * d0};
-            const auto point(new TMarker{x.x(), x.y(), kFullCrossX});
+            const auto point(new TMarker{x.x(), x.y(), kFullCross});
             const auto arrowLength{muc::midpoint(lga.LGAWidthX(), lga.LGAWidthY())};
             const Eigen::Vector2d x1{x - (arrowLength / 2) * d0};
             const Eigen::Vector2d x2{x + (arrowLength / 2) * d0};

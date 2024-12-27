@@ -21,6 +21,7 @@
 #include "ROOT/RDataFrame.hxx"
 #include "TFile.h"
 #include "TMacro.h"
+#include "TNamed.h"
 
 #include "muc/hash_map"
 
@@ -30,6 +31,7 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -46,16 +48,18 @@ auto main(int argc, char* argv[]) -> int {
     cli->add_argument("-o", "--output").help("Output file path.").required().nargs(1);
     cli->add_argument("-m", "--output-mode").help("Output file creation mode.").required().nargs(1).default_value("NEW"s);
     cli->add_argument("-s", "--output-digi-summary").help("Output digi summary name.").required().nargs(1).default_value("LGADigiSummary"s);
+    cli->add_argument("-h", "--output-digi-tree").help("Output digi tree name.").required().nargs(1).default_value("LGADigi"s);
     cli->add_argument("-h", "--output-hit-tree").help("Output hit tree name.").required().nargs(1).default_value("LGAHit"s);
     cli->add_argument("-e", "--output-event-tree").help("Output event tree name.").required().nargs(1).default_value("CRMuEvent"s);
     cli->add_argument("-p", "--plot-hit").help("Produce hit plots for an event range (e.g. -p <first> <last>).").nargs(2).scan<'i', int>();
-    cli->add_argument("-z", "--daq-t0").help("DAQ start time (in second).").required().nargs(1).scan<'g', double>().default_value(0.);
-    cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").required().nargs(1).default_value("Weighted2D"s);
+    cli->add_argument("-d", "--soft-dead-time").help("Artificial dead time (in millisecond).").required().nargs(1).scan<'g', double>().default_value(0.);
+    cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").required().nargs(1).default_value("EnergyWeighted2D"s);
     cli->add_argument("-c", "--no-crmu").help("Skip cosmic-ray muon event reconstruction.").flag();
     cli->add_argument("-r", "--crmu-method").help("Cosmic-ray muon event reconstruction method.").required().nargs(1).default_value("LeastChiSquare"s);
     Mustard::Env::BasicEnv env{argc, argv, cli};
 
     const auto plotEventRange{cli->present<std::vector<int>>("--plot-hit")};
+    const auto softDeadTime{cli->get<double>("--soft-dead-time") * CLHEP::ms};
     const auto hitReconstructionMethod{cli->get("--hit-method")};
     const auto reconstructCRMu{cli["--no-crmu"] == false};
     const auto crMuReconstructionMethod{cli->get("--crmu-method")};
@@ -74,13 +78,11 @@ auto main(int argc, char* argv[]) -> int {
 
     // digi data summary
 
-    Long64_t daqTimePicoseconds{std::numeric_limits<Long64_t>::lowest()};
     muc::flat_hash_map<int, ChannelSummary> flatChannelSummary;
     Mustard::PrintLn("Summarizing LGA digi data...");
     ROOT::RDF::Experimental::AddProgressBar(data);
     data.Foreach(
         [&](Long64_t time, unsigned channelID, float energy) {
-            if (time > daqTimePicoseconds) { daqTimePicoseconds = time; }
             auto& ch{flatChannelSummary[channelID]};
             ch.channelID = channelID;
             ch.meanEnergy += energy;
@@ -88,11 +90,10 @@ auto main(int argc, char* argv[]) -> int {
         },
         {"time", "channelID", "energy"});
     Mustard::PrintLn("Completed.");
-    const auto daqTime{daqTimePicoseconds * CLHEP::ps};
     for (auto&& [_, ch] : flatChannelSummary) {
         ch.meanEnergy /= ch.triggerCount;
     }
-    const auto channelSummaryText{FormatChannelSummary(cli->get<double>("--daq-t0") * CLHEP::s, daqTime, flatChannelSummary)};
+    const auto channelSummaryText{FormatChannelSummary(flatChannelSummary)};
     Mustard::Print<'W'>("{}", channelSummaryText);
     Mustard::MakeTextTMacro(channelSummaryText, cli->get("--output-digi-summary"))->Write();
 
@@ -100,23 +101,25 @@ auto main(int argc, char* argv[]) -> int {
 
     auto extendedData{
         data.Define(
-                "normalizedEnergy",
+                "NormalizedEnergy",
                 [&](unsigned channelID, float energy) -> float {
                     return energy / flatChannelSummary.at(channelID).meanEnergy;
                 },
                 {"channelID", "energy"})
             .Redefine(
                 "time",
-                [timeOffset = cli->get<double>("--daq-t0") * CLHEP::s](Long64_t time) {
-                    return time * CLHEP::ps + timeOffset;
+                [](Long64_t time) {
+                    return time * CLHEP::ps;
                 },
                 {"time"})};
 
     // main reconstruction loop
 
+    Mustard::Data::Output<Musae::Data::LGADigi> lgaDigiOutput{cli->get("--output-digi-tree"), "Reconstructed LGA hit digi"};
     Mustard::Data::Output<Musae::Data::LGAHit> lgaHitOutput{cli->get("--output-hit-tree"), "Reconstructed LGA hit data"};
     Mustard::Data::Output<Musae::Data::CRMuEvent> crMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
-    LGADigi* headDigi{};
+    std::optional<double> triggerTime{};
+    std::optional<double> eventCloseTime{};
     LGADigiMap<std::unique_ptr<LGADigi>> coincidentDigi; // {moduleID, edge} -> [digi...]
 
     int eventID{};
@@ -125,24 +128,33 @@ auto main(int argc, char* argv[]) -> int {
     extendedData.Foreach(
         [&](double time, unsigned channelID, float energy, float normalizedEnergy) {
             // insert coincidence hit
-            if (headDigi == nullptr or
-                std::abs(time - Get<"time">(*headDigi)) < lga.CoincidenceTimeWindow()) {
+            if (eventCloseTime and std::abs(time - *eventCloseTime) < softDeadTime) {
+                return;
+            }
+            if (triggerTime == std::nullopt) {
+                triggerTime = time;
+            }
+            if (std::abs(time - *triggerTime) < lga.CoincidenceTimeWindow()) {
                 const auto ch{lga.TryChannelInfo(channelID)};
                 if (ch == nullptr) { return; }
                 // make and insert a digi
-                auto digi{std::make_unique<LGADigi>(time, channelID, energy, normalizedEnergy)};
-                if (headDigi == nullptr) {
-                    headDigi = digi.get();
-                }
+                auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID,
+                                                    ch->moduleID, ch->edge, ch->fiberLocalID,
+                                                    normalizedEnergy)};
                 coincidentDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
                 return;
             }
 
             // process coincidence hit
-            do {
+            [&] {
                 // reconstruct hits
-                const auto [eventHit, eventDigi]{ReconstructAllHit(coincidentDigi, eventID, hitReconstructionMethod)};
-                if (eventHit.empty()) { break; }
+                const auto [eventDigi, eventHit]{ReconstructAllHit(coincidentDigi, hitReconstructionMethod)};
+                if (eventHit.empty()) { return; }
+                for (auto&& [_, moduleDigi] : std::as_const(eventDigi)) {
+                    for (auto&& [_, digi] : std::as_const(moduleDigi)) {
+                        lgaDigiOutput.Fill(digi);
+                    }
+                }
                 lgaHitOutput.Fill(eventHit);
                 // reconstruct cosmic-ray muon event
                 std::unique_ptr<CRMuEvent> crMuEvent;
@@ -157,18 +169,26 @@ auto main(int argc, char* argv[]) -> int {
                 // plot event
                 if (plotEventRange.has_value() and
                     plotEventRange->front() <= eventID and eventID < plotEventRange->back()) {
-                    PlotEvent(coincidentDigi, eventHit, eventDigi, crMuEvent.get());
+                    PlotEvent(coincidentDigi, eventDigi, eventHit, crMuEvent.get());
                 }
+                eventCloseTime = time;
                 ++eventID;
-            } while (false);
+            }();
 
             // reset coincidence hit
-            headDigi = nullptr;
+            triggerTime = std::nullopt;
             coincidentDigi.clear();
         },
-        {"time", "channelID", "energy", "normalizedEnergy"});
+        {"time", "channelID", "energy", "NormalizedEnergy"});
     Mustard::PrintLn("Completed.");
 
+    const auto totalSoftDeadTime{eventID * softDeadTime};
+    TNamed{fmt::format("Soft dead time: {:.1f} s", totalSoftDeadTime / CLHEP::s),
+           fmt::format("Total soft dead time: {} s, accumulated from {} events' {}-ms dead time",
+                       totalSoftDeadTime / CLHEP::s, eventID, softDeadTime / CLHEP::ms)}
+        .Write();
+
+    lgaDigiOutput.Write();
     lgaHitOutput.Write();
     if (reconstructCRMu) {
         crMuEventOutput.Write();

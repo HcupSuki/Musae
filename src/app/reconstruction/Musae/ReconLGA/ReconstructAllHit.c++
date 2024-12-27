@@ -6,15 +6,14 @@
 
 namespace Musae::ReconLGA {
 
-auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
-                       int eventID, std::string_view method)
-    -> std::pair<std::vector<std::unique_ptr<LGAHit>>, LGADigiMap<LGADigi*>> {
+auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi, std::string_view method)
+    -> std::pair<LGADigiMap<LGADigi*>, std::vector<std::unique_ptr<LGAHit>>> {
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 
-    std::pair<std::vector<std::unique_ptr<LGAHit>>, LGADigiMap<LGADigi*>> result;
-    auto& [eventHit, eventDigi]{result};
-    eventHit.reserve(lga.NModule());
+    std::pair<LGADigiMap<LGADigi*>, std::vector<std::unique_ptr<LGAHit>>> result;
+    auto& [eventDigi, eventHit]{result};
     eventDigi.reserve(lga.NModule());
+    eventHit.reserve(lga.NModule());
 
     // digi selection loop
 
@@ -56,7 +55,7 @@ auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDig
             continue;
         }
 
-        auto hit{ReconstructHit(digiOfTheModule, eventID, hitID, method)};
+        auto hit{ReconstructHit(digiOfTheModule, hitID, method)};
         if (hit == nullptr) {
             digiOfTheModule.clear();
             continue;

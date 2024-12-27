@@ -13,6 +13,6 @@
 namespace Musae::ReconLGA {
 
 auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData,
-                    int eventID, int hitID, std::string_view method) -> std::unique_ptr<LGAHit>;
+                    int hitID, std::string_view method) -> std::unique_ptr<LGAHit>;
 
 } // namespace Musae::ReconLGA

@@ -10,7 +10,7 @@
 
 namespace Musae::ReconLGA {
 
-auto FormatChannelSummary(double t0, double daqTime, const muc::flat_hash_map<int, ChannelSummary>& flatChannelSummary) -> std::string {
+auto FormatChannelSummary(const muc::flat_hash_map<int, ChannelSummary>& flatChannelSummary) -> std::string {
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
     muc::flat_hash_map<int, muc::flat_hash_map<std::pair<char, int>, ChannelSummary>> channelSummaryData;
     for (auto&& [channelID, channelSummary] : std::as_const(flatChannelSummary)) {
@@ -21,9 +21,7 @@ auto FormatChannelSummary(double t0, double daqTime, const muc::flat_hash_map<in
             channelSummaryData[std::numeric_limits<int>::max()][{}] = channelSummary;
         }
     }
-    auto summaryText{fmt::format("DAQ start time set to {} s, DAQ duration: {} s\n"
-                                 "Data summary:\n",
-                                 t0 / CLHEP::s, daqTime / CLHEP::s)};
+    std::string summaryText{"Data summary:\n"};
     for (auto moduleID : std::views::iota(0, lga.NModule())) {
         summaryText += fmt::format("Module {} (chip {}):\n", moduleID, lga.ChipID(moduleID));
         summaryText += "  Edge x:\n";

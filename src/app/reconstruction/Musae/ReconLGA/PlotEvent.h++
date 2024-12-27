@@ -9,8 +9,8 @@ namespace Musae::ReconLGA {
 
 // plot hit of an event
 auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
-               const std::vector<std::unique_ptr<LGAHit>>& eventHit,
                const LGADigiMap<LGADigi*>& eventDigi,
+               const std::vector<std::unique_ptr<LGAHit>>& eventHit,
                const CRMuEvent* crMuEvent) -> void;
 
 } // namespace Musae::ReconLGA

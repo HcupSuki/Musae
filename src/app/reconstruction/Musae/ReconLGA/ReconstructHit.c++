@@ -7,6 +7,8 @@
 #include "CLHEP/Units/SystemOfUnits.h"
 #include "CLHEP/Vector/TwoVector.h"
 
+#include "muc/ceta_string"
+
 #include "fmt/format.h"
 
 #include <algorithm>
@@ -18,13 +20,16 @@ namespace Musae::ReconLGA {
 namespace {
 namespace HitReconstruction {
 
+namespace internal {
+
+template<muc::ceta_string AWeight>
 auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
     const auto& lga{Detector::Description::LGA::Instance()};
 
     Mustard::Math::Statistic<1> time;
     for (auto&& [edge, digiPerEdge] : digiData) {
         for (auto&& digi : std::as_const(digiPerEdge)) {
-            time.Fill(Get<"time">(*digi), Get<"normalizedEnergy">(*digi));
+            time.Fill(Get<"time">(*digi), Get<AWeight>(*digi));
         }
     }
 
@@ -32,7 +37,7 @@ auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData)
     for (auto&& xDigi : digiData.at('x')) {
         for (auto&& yDigi : digiData.at('y')) {
             position.Fill(lga.Intersection(Get<"channelID">(*xDigi), Get<"channelID">(*yDigi)),
-                          Get<"normalizedEnergy">(*xDigi) + Get<"normalizedEnergy">(*yDigi));
+                          Get<AWeight>(*xDigi) + Get<AWeight>(*yDigi));
         }
     }
 
@@ -45,16 +50,32 @@ auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData)
     return hit;
 }
 
+} // namespace internal
+
+auto EnergyWeighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
+    return internal::Weighted2D<"energy">(digiData);
+}
+
+auto NormalizedEnergyWeighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
+    return internal::Weighted2D<"NormalizedEnergy">(digiData);
+}
+
 } // namespace HitReconstruction
 } // namespace
 
 auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData,
-                    int eventID, int hitID, std::string_view method) -> std::unique_ptr<LGAHit> {
+                    int hitID, std::string_view method) -> std::unique_ptr<LGAHit> {
     const auto& lga{Detector::Description::LGA::Instance()};
-    const auto moduleID{lga.ChannelInfo(Get<"channelID">(*digiData.at('x').front())).moduleID};
+    const auto moduleID{*Get<"ModID">(*digiData.at('x').front())};
     for (auto&& [_, digi] : digiData) {
-        if (std::ranges::any_of(digi, [&](auto&& d) { return lga.ChannelInfo(Get<"channelID">(*d)).moduleID != moduleID; })) {
+        if (std::ranges::any_of(digi, [&](auto&& d) { return Get<"ModID">(*d) != moduleID; })) {
             Mustard::Throw<std::runtime_error>("Module IDs in digi data are not all the same");
+        }
+    }
+    const auto eventID{*Get<"EvtID">(*digiData.at('x').front())};
+    for (auto&& [_, digi] : digiData) {
+        if (std::ranges::any_of(digi, [&](auto&& d) { return Get<"EvtID">(*d) != eventID; })) {
+            Mustard::Throw<std::runtime_error>("Event IDs in digi data are not all the same");
         }
     }
 
@@ -66,8 +87,10 @@ auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiD
     }
 
     std::unique_ptr<LGAHit> hit;
-    if (method == "Weighted2D") {
-        hit = HitReconstruction::Weighted2D(digiData);
+    if (method == "EnergyWeighted2D") {
+        hit = HitReconstruction::EnergyWeighted2D(digiData);
+    } else if (method == "NormalizedEnergyWeighted2D") {
+        hit = HitReconstruction::NormalizedEnergyWeighted2D(digiData);
     } else {
         Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
     }
