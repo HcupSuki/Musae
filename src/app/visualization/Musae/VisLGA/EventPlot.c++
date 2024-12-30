@@ -1,13 +1,13 @@
 #include "Musae/Detector/Description/LGA.h++"
-#include "Musae/ReconLGA/PlotEvent.h++"
+#include "Musae/VisLGA/EventPlot.h++"
 
+#include "Mustard/Utility/Print.h++"
 #include "Mustard/Utility/VectorCast.h++"
 
 #include "CLHEP/Units/SystemOfUnits.h"
 #include "CLHEP/Vector/TwoVector.h"
 
 #include "TArrow.h"
-#include "TCanvas.h"
 #include "TDirectory.h"
 #include "TEllipse.h"
 #include "TFile.h"
@@ -21,52 +21,61 @@
 #include "muc/hash_map"
 #include "muc/numeric"
 
+#include <iostream>
 #include <limits>
-#include <list>
 #include <utility>
 
-namespace Musae::ReconLGA {
+namespace Musae::VisLGA {
 
-auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
-               const LGADigiMap<LGADigi*>& eventDigi,
-               const std::vector<std::unique_ptr<LGAHit>>& eventHit,
-               const CRMuEvent* crMuEvent) -> void {
-    const auto pwd{TDirectory::CurrentDirectory().load()->GetPath()};
-    gFile->cd(gFile->mkdir("LGAHitPlot", "", true)->GetPath());
+auto EventPlot(const DataVector<LGADigi>& eventDigi,
+               const DataVector<LGAHit>& eventHit,
+               const CRMuEvent* cRMuEvent) -> std::unique_ptr<TCanvas> {
+    const auto& lga{Musae::Detector::Description::LGA::Instance()};
+
+    // make digi map
+
+    LGADigiMap<const LGADigi*> eventDigiMap;
+    for (auto&& digi : eventDigi) {
+        const auto& ch{lga.TryChannelInfo(Get<"channelID">(*digi))};
+        if (ch) {
+            eventDigiMap[ch->moduleID][ch->edge].emplace_back(digi.get());
+        }
+    }
 
     // new canvas
 
     const auto eventID{*Get<"EvtID">(*eventHit.front())};
     const auto canvasName{fmt::format("Event{}", eventID)};
     const auto nHit{static_cast<int>(ssize(eventHit))};
-    TCanvas canvas{canvasName.c_str(), canvasName.c_str(), nHit * 450, 450};
+    auto canvas{std::make_unique<TCanvas>(canvasName.c_str(), canvasName.c_str(), nHit * 450, 450)};
+    canvas->cd();
 
     // add pads
 
-    std::list<TPad> padList;
+    std::vector<TPad*> padList;
     for (auto&& hit : eventHit) {
         const auto hitID{*Get<"HitID">(*hit)};
         const auto padLeft{static_cast<double>(hitID) / nHit};
         const auto padRight{static_cast<double>(hitID + 1) / nHit};
         const auto padName{fmt::format("Pad{}", hitID)};
-        auto& pad{padList.emplace_back(padName.c_str(), padName.c_str(), padLeft, 0, padRight, 1)};
-        pad.Draw();
+        auto& pad{padList.emplace_back(
+            new TPad{padName.c_str(), padName.c_str(), padLeft, 0, padRight, 1})};
+        pad->Draw();
     }
     auto pad{padList.begin()};
 
-    const auto& lga{Musae::Detector::Description::LGA::Instance()};
     const auto lgaWidthX{lga.NFiberX() * lga.LGACellWidth()};
     const auto lgaWidthY{lga.NFiberY() * lga.LGACellWidth()};
 
     // new track point (if any)
 
     muc::flat_hash_map<int, std::pair<TMarker*, TArrow*>> trackPoint;
-    if (crMuEvent) {
-        const Eigen::Vector2d x0{Get<"x0">(*crMuEvent)[0], Get<"x0">(*crMuEvent)[1]};
-        const auto sinTheta{std::sin(Get<"theta">(*crMuEvent))};
-        const Eigen::Vector3d d{sinTheta * std::cos(Get<"phi">(*crMuEvent)),
-                                sinTheta * std::sin(Get<"phi">(*crMuEvent)),
-                                std::cos(Get<"theta">(*crMuEvent))};
+    if (cRMuEvent) {
+        const Eigen::Vector2d x0{Get<"x0">(*cRMuEvent)[0], Get<"x0">(*cRMuEvent)[1]};
+        const auto sinTheta{std::sin(Get<"theta">(*cRMuEvent))};
+        const Eigen::Vector3d d{sinTheta * std::cos(Get<"phi">(*cRMuEvent)),
+                                sinTheta * std::sin(Get<"phi">(*cRMuEvent)),
+                                std::cos(Get<"theta">(*cRMuEvent))};
         const Eigen::Vector2d d0{d.x(), d.y()};
         for (int i{}; i < lga.NModule(); ++i) {
             const Eigen::Vector2d x{x0 + (lga.ModuleZ(i) / d.z()) * d0};
@@ -83,7 +92,7 @@ auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
     // plot everything
 
     for (auto&& hit : eventHit) {
-        pad++->cd();
+        (*pad++)->cd();
 
         // draw digi histogram
 
@@ -97,35 +106,25 @@ auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
         for (auto i{1}; i <= hist->GetNcells(); ++i) {
             hist->SetBinContent(i, std::numeric_limits<float>::denorm_min());
         }
-        for (auto&& digi : coincidentDigi.at(moduleID).at('x')) {
+        for (auto&& digi : eventDigiMap.at(moduleID).at('x')) {
             const auto& ch{lga.ChannelInfo(Get<"channelID">(*digi))};
-            const auto trigger(new TMarker{ch.edgePosition, -lgaWidthY / 2, kOpenTriangleUp});
+            const auto trigger(new TMarker{ch.edgePosition, -lgaWidthY / 2,
+                                           Get<"Good">(*digi) ? kFullTriangleUp : kOpenTriangleUp});
             trigger->SetMarkerColor(kMagenta);
             marker.emplace_back(trigger);
             for (int j{}; j < lga.NFiberY(); ++j) {
                 hist->Fill(ch.edgePosition, lga.FiberY(j), Get<"energy">(*digi));
             }
         }
-        for (auto&& digi : coincidentDigi.at(moduleID).at('y')) {
+        for (auto&& digi : eventDigiMap.at(moduleID).at('y')) {
             const auto& ch{lga.ChannelInfo(Get<"channelID">(*digi))};
-            const auto trigger(new TMarker{-lgaWidthX / 2, ch.edgePosition, kOpenTriangleUp});
+            const auto trigger(new TMarker{-lgaWidthX / 2, ch.edgePosition,
+                                           Get<"Good">(*digi) ? kFullTriangleUp : kOpenTriangleUp});
             trigger->SetMarkerColor(kMagenta);
             marker.emplace_back(trigger);
             for (int i{}; i < lga.NFiberX(); ++i) {
                 hist->Fill(lga.FiberX(i), ch.edgePosition, Get<"energy">(*digi));
             }
-        }
-        for (auto&& digi : eventDigi.at(moduleID).at('x')) {
-            const auto& ch{lga.ChannelInfo(Get<"channelID">(*digi))};
-            const auto selected(new TMarker{ch.edgePosition, -lgaWidthY / 2, kFullTriangleUp});
-            selected->SetMarkerColor(kMagenta);
-            marker.emplace_back(selected);
-        }
-        for (auto&& digi : eventDigi.at(moduleID).at('y')) {
-            const auto& ch{lga.ChannelInfo(Get<"channelID">(*digi))};
-            const auto selected(new TMarker{-lgaWidthX / 2, ch.edgePosition, kFullTriangleUp});
-            selected->SetMarkerColor(kMagenta);
-            marker.emplace_back(selected);
         }
         hist->SetStats(false);
         hist->GetXaxis()->SetTitle("x (mm)");
@@ -172,9 +171,7 @@ auto PlotEvent(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi,
         }
     }
 
-    canvas.Write();
-
-    gFile->cd(pwd);
+    return canvas;
 }
 
-} // namespace Musae::ReconLGA
+} // namespace Musae::VisLGA

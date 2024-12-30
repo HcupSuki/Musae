@@ -1,6 +1,7 @@
 add_subdirectory(reconstruction)
 add_subdirectory(simulation)
 add_subdirectory(utility)
+add_subdirectory(visualization)
 
 file(GLOB MUSAE_APP_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*)
 foreach(_scripts ${MUSAE_APP_SCRIPTS})

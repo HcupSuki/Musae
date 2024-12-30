@@ -38,7 +38,7 @@ auto GenCRMu::Main(int argc, char* argv[]) const -> int {
     CLI cli;
     cli->add_argument("n").help("Number of events to generate.").nargs(1).scan<'i', unsigned long long>();
     cli->add_argument("-o", "--output").help("Output file path.").required().nargs(1);
-    cli->add_argument("--output-mode").help("Output file creation mode.").required().nargs(1).default_value("NEW");
+    cli->add_argument("--output-mode").help("Output file creation mode.").default_value("NEW").required().nargs(1);
     Mustard::Env::MPIEnv env{argc, argv, cli};
 
     Mustard::UseXoshiro<512> random;

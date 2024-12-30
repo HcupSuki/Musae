@@ -6,21 +6,21 @@
 
 namespace Musae::ReconLGA {
 
-auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDigi, std::string_view method)
-    -> std::pair<LGADigiMap<LGADigi*>, std::vector<std::unique_ptr<LGAHit>>> {
+auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& eventDigi, std::string_view method)
+    -> std::vector<std::unique_ptr<LGAHit>> {
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 
-    std::pair<LGADigiMap<LGADigi*>, std::vector<std::unique_ptr<LGAHit>>> result;
-    auto& [eventDigi, eventHit]{result};
-    eventDigi.reserve(lga.NModule());
+    std::vector<std::unique_ptr<LGAHit>> eventHit;
     eventHit.reserve(lga.NModule());
+    LGADigiMap<LGADigi*> goodEventDigi;
+    goodEventDigi.reserve(lga.NModule());
 
     // digi selection loop
 
     int hitID{};
     for (auto moduleID : std::views::iota(0, lga.NModule())) {
-        const auto iDigiOfTheModule{coincidentDigi.find(moduleID)};
-        if (iDigiOfTheModule == coincidentDigi.cend()) {
+        const auto iDigiOfTheModule{eventDigi.find(moduleID)};
+        if (iDigiOfTheModule == eventDigi.cend()) {
             continue;
         }
         const auto& digiOfTheModule{iDigiOfTheModule->second};
@@ -34,7 +34,7 @@ auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDig
             // digi selection here
             for (auto&& digi : digiOfTheEdge) {
                 if (Get<"energy">(*digi) > lga.LuminousDigiEnergyThreshold()) {
-                    eventDigi[moduleID][edge].emplace_back(digi.get());
+                    goodEventDigi[moduleID][edge].emplace_back(digi.get());
                 }
             }
         }
@@ -43,8 +43,8 @@ auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDig
     // hit reconstruction loop
 
     for (auto moduleID : std::views::iota(0, lga.NModule())) {
-        const auto iDigiOfTheModule{eventDigi.find(moduleID)};
-        if (iDigiOfTheModule == eventDigi.cend()) {
+        const auto iDigiOfTheModule{goodEventDigi.find(moduleID)};
+        if (iDigiOfTheModule == goodEventDigi.cend()) {
             continue;
         }
         auto& digiOfTheModule{iDigiOfTheModule->second};
@@ -70,7 +70,15 @@ auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& coincidentDig
         return {};
     }
 
-    return result;
+    for (auto&& [_, digiOfTheModule] : std::as_const(goodEventDigi)) {
+        for (auto&& [_, digiOfTheEdge] : digiOfTheModule) {
+            for (auto&& digi : digiOfTheEdge) {
+                Get<"Good">(*digi) = true;
+            }
+        }
+    }
+
+    return eventHit;
 }
 
 } // namespace Musae::ReconLGA

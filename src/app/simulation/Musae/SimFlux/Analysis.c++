@@ -16,9 +16,9 @@ auto Analysis::RunBeginUserAction(int runID) -> void {
 }
 
 auto Analysis::EventEndUserAction() -> void {
-    const auto crMuEvent{fLGAHitData ? std::optional{fTruthFitter(*fLGAHitData)} : std::nullopt};
+    const auto cRMuEvent{fLGAHitData ? std::optional{fTruthFitter(*fLGAHitData)} : std::nullopt};
     if (fLGAHitData) { fLGASimHitOutput->Fill(*fLGAHitData); }
-    if (crMuEvent and *crMuEvent) { fCRMuSimEventOutput->Fill(**crMuEvent); }
+    if (cRMuEvent and *cRMuEvent) { fCRMuSimEventOutput->Fill(**cRMuEvent); }
     fLGAHitData = nullptr;
 }
 

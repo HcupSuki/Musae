@@ -2,7 +2,6 @@
 #include "Musae/Data/Hit.h++"
 #include "Musae/Detector/Description/LGA.h++"
 #include "Musae/ReconLGA/FormatChannelSummary.h++"
-#include "Musae/ReconLGA/PlotEvent.h++"
 #include "Musae/ReconLGA/ReconLGA.h++"
 #include "Musae/ReconLGA/ReconstructAllHit.h++"
 #include "Musae/ReconLGA/ReconstructCRMu.h++"
@@ -48,26 +47,24 @@ using namespace std::string_literals;
 auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     Mustard::Env::CLI::BasicCLI<> cli;
     cli->add_argument("input").help("Input file path(s).").nargs(argparse::nargs_pattern::at_least_one);
-    cli->add_argument("-t", "--input-tree").help("Input tree name.").required().nargs(1).default_value("data"s);
+    cli->add_argument("-t", "--input-tree").help("Input tree name.").default_value("data"s).required().nargs(1);
     cli->add_argument("-n", "--input-range").help("Input entry range.").nargs(2).scan<'i', unsigned>();
     cli->add_argument("-o", "--output").help("Output file path.").required().nargs(1);
-    cli->add_argument("-m", "--output-mode").help("Output file creation mode.").required().nargs(1).default_value("NEW"s);
-    cli->add_argument("-s", "--output-digi-summary").help("Output digi summary name.").required().nargs(1).default_value("LGADigiSummary"s);
-    cli->add_argument("-h", "--output-digi-tree").help("Output digi tree name.").required().nargs(1).default_value("LGADigi"s);
-    cli->add_argument("-h", "--output-hit-tree").help("Output hit tree name.").required().nargs(1).default_value("LGAHit"s);
-    cli->add_argument("-e", "--output-event-tree").help("Output event tree name.").required().nargs(1).default_value("CRMuEvent"s);
-    cli->add_argument("-p", "--plot-hit").help("Produce hit plots for an event range (e.g. -p <first> <last>).").nargs(2).scan<'i', int>();
-    cli->add_argument("-d", "--soft-dead-time").help("Artificial dead time (in millisecond).").required().nargs(1).scan<'g', double>().default_value(0.);
-    cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").required().nargs(1).default_value("EnergyWeighted2D"s);
+    cli->add_argument("-m", "--output-mode").help("Output file creation mode.").default_value("NEW"s).required().nargs(1);
+    cli->add_argument("-s", "--output-digi-summary").help("Output digi summary name.").default_value("LGADigiSummary"s).required().nargs(1);
+    cli->add_argument("-g", "--output-digi-tree").help("Output digi tree name.").default_value("LGADigi"s).required().nargs(1);
+    cli->add_argument("-h", "--output-hit-tree").help("Output hit tree name.").default_value("LGAHit"s).required().nargs(1);
+    cli->add_argument("-e", "--output-event-tree").help("Output event tree name.").default_value("CRMuEvent"s).required().nargs(1);
+    cli->add_argument("-d", "--soft-dead-time").help("Artificial dead time (in millisecond).").default_value(0.).required().nargs(1).scan<'g', double>();
+    cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").default_value("EnergyWeighted2D"s).required().nargs(1);
     cli->add_argument("-c", "--no-crmu").help("Skip cosmic-ray muon event reconstruction.").flag();
-    cli->add_argument("-r", "--crmu-method").help("Cosmic-ray muon event reconstruction method.").required().nargs(1).default_value("LeastChiSquare"s);
+    cli->add_argument("-u", "--crmu-method").help("Cosmic-ray muon event reconstruction method.").default_value("LeastChiSquare"s).required().nargs(1);
     Mustard::Env::BasicEnv env{argc, argv, cli};
 
-    const auto plotEventRange{cli->present<std::vector<int>>("--plot-hit")};
     const auto softDeadTime{cli->get<double>("--soft-dead-time") * CLHEP::ms};
     const auto hitReconstructionMethod{cli->get("--hit-method")};
     const auto reconstructCRMu{cli["--no-crmu"] == false};
-    const auto crMuReconstructionMethod{cli->get("--crmu-method")};
+    const auto cRMuReconstructionMethod{cli->get("--crmu-method")};
 
     ROOT::RDF::RNode data(ROOT::RDataFrame{cli->get("--input-tree"), cli->get<std::vector<std::string>>("input")});
     if (const auto entryRange{cli->present<std::vector<unsigned>>("--input-range")}) {
@@ -122,10 +119,10 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
 
     Mustard::Data::Output<Musae::Data::LGADigi> lgaDigiOutput{cli->get("--output-digi-tree"), "Reconstructed LGA hit digi"};
     Mustard::Data::Output<Musae::Data::LGAHit> lgaHitOutput{cli->get("--output-hit-tree"), "Reconstructed LGA hit data"};
-    Mustard::Data::Output<Musae::Data::CRMuEvent> crMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
+    Mustard::Data::Output<Musae::Data::CRMuEvent> cRMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
     std::optional<double> triggerTime{};
     std::optional<double> eventCloseTime{};
-    LGADigiMap<std::unique_ptr<LGADigi>> coincidentDigi; // {moduleID, edge} -> [digi...]
+    LGADigiMap<std::unique_ptr<LGADigi>> eventDigi; // {moduleID, edge} -> [digi...]
 
     int eventID{};
     ROOT::RDF::Experimental::AddProgressBar(data);
@@ -143,17 +140,17 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
                 const auto ch{lga.TryChannelInfo(channelID)};
                 if (ch == nullptr) { return; }
                 // make and insert a digi
-                auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID,
+                auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID, false,
                                                     ch->moduleID, ch->edge, ch->fiberLocalID,
                                                     normalizedEnergy)};
-                coincidentDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
+                eventDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
                 return;
             }
 
             // process coincidence hit
             [&] {
                 // reconstruct hits
-                const auto [eventDigi, eventHit]{ReconstructAllHit(coincidentDigi, hitReconstructionMethod)};
+                const auto eventHit{ReconstructAllHit(eventDigi, hitReconstructionMethod)};
                 if (eventHit.empty()) { return; }
                 for (auto&& [_, moduleDigi] : std::as_const(eventDigi)) {
                     for (auto&& [_, digi] : std::as_const(moduleDigi)) {
@@ -162,19 +159,14 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
                 }
                 lgaHitOutput.Fill(eventHit);
                 // reconstruct cosmic-ray muon event
-                std::unique_ptr<CRMuEvent> crMuEvent;
+                std::unique_ptr<CRMuEvent> cRMuEvent;
                 if (reconstructCRMu) {
-                    crMuEvent = ReconstructCRMu(eventHit, crMuReconstructionMethod);
-                    if (crMuEvent) {
-                        crMuEventOutput.Fill(*crMuEvent);
+                    cRMuEvent = ReconstructCRMu(eventHit, cRMuReconstructionMethod);
+                    if (cRMuEvent) {
+                        cRMuEventOutput.Fill(*cRMuEvent);
                     } else {
                         Mustard::PrintWarning(fmt::format("Failed to reconstruct event {}", eventID));
                     }
-                }
-                // plot event
-                if (plotEventRange.has_value() and
-                    plotEventRange->front() <= eventID and eventID < plotEventRange->back()) {
-                    PlotEvent(coincidentDigi, eventDigi, eventHit, crMuEvent.get());
                 }
                 eventCloseTime = time;
                 ++eventID;
@@ -182,7 +174,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
 
             // reset coincidence hit
             triggerTime = std::nullopt;
-            coincidentDigi.clear();
+            eventDigi.clear();
         },
         {"time", "channelID", "energy", "NormalizedEnergy"});
     Mustard::PrintLn("Completed.");
@@ -196,7 +188,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     lgaDigiOutput.Write();
     lgaHitOutput.Write();
     if (reconstructCRMu) {
-        crMuEventOutput.Write();
+        cRMuEventOutput.Write();
     }
 
     return EXIT_SUCCESS;

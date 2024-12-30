@@ -15,6 +15,7 @@ using LGARawDigi = Mustard::Data::TupleModel<
 using LGADigi = Mustard::Data::TupleModel<
     LGARawDigi,
     Mustard::Data::Value<int, "EvtID">,
+    Mustard::Data::Value<bool, "Good">,
     Mustard::Data::Value<short, "ModID">,
     Mustard::Data::Value<char, "Edge">,
     Mustard::Data::Value<short, "FibLocID">,
