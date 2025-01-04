@@ -4,12 +4,14 @@
 
 #include "TCanvas.h"
 
+#include "muc/ptrvec"
+
 #include <memory>
 
 namespace Musae::VisLGA {
 
-auto EventPlot(const DataVector<LGADigi>& coincidentDigi,
-               const DataVector<LGAHit>& eventHit,
+auto EventPlot(const muc::shared_ptrvec<LGADigi>& coincidentDigi,
+               const muc::shared_ptrvec<LGAHit>& eventHit,
                const CRMuEvent* cRMuEvent) -> std::unique_ptr<TCanvas>;
 
 } // namespace Musae::VisLGA

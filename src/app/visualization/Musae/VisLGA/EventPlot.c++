@@ -27,8 +27,8 @@
 
 namespace Musae::VisLGA {
 
-auto EventPlot(const DataVector<LGADigi>& eventDigi,
-               const DataVector<LGAHit>& eventHit,
+auto EventPlot(const muc::shared_ptrvec<LGADigi>& eventDigi,
+               const muc::shared_ptrvec<LGAHit>& eventHit,
                const CRMuEvent* cRMuEvent) -> std::unique_ptr<TCanvas> {
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 

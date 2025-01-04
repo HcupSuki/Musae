@@ -24,7 +24,7 @@ namespace CRMuReconstruction {
 
 namespace internal {
 
-auto LeastSquare(const std::vector<std::unique_ptr<LGAHit>>& eventHit,
+auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
                  const ROOT::Math::IMultiGenFunction& Square) -> std::unique_ptr<CRMuEvent> {
     const auto& lga{Detector::Description::LGA::Instance()};
     const auto xScale{muc::midpoint(lga.ScintillatorWidthX(), lga.ScintillatorWidthY())};
@@ -60,7 +60,7 @@ auto LeastSquare(const std::vector<std::unique_ptr<LGAHit>>& eventHit,
 
 } // namespace internal
 
-auto LeastChiSquare(const std::vector<std::unique_ptr<LGAHit>>& eventHit) -> std::unique_ptr<CRMuEvent> {
+auto LeastChiSquare(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_ptr<CRMuEvent> {
     const auto& lga{Detector::Description::LGA::Instance()};
     struct HitForFit {
         Eigen::Vector2d x;
@@ -94,7 +94,7 @@ auto LeastChiSquare(const std::vector<std::unique_ptr<LGAHit>>& eventHit) -> std
     return internal::LeastSquare(eventHit, ChiSquare);
 }
 
-auto LeastChiSquareSameWeight(const std::vector<std::unique_ptr<LGAHit>>& eventHit) -> std::unique_ptr<CRMuEvent> {
+auto LeastChiSquareSameWeight(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_ptr<CRMuEvent> {
     const auto& lga{Detector::Description::LGA::Instance()};
     const auto variance{muc::pow<2>(lga.LGACellWidth()) / 12};
     struct HitForFit {
@@ -125,7 +125,7 @@ auto LeastChiSquareSameWeight(const std::vector<std::unique_ptr<LGAHit>>& eventH
 } // namespace CRMuReconstruction
 } // namespace
 
-auto ReconstructCRMu(const std::vector<std::unique_ptr<LGAHit>>& eventHit, std::string_view method) -> std::unique_ptr<CRMuEvent> {
+auto ReconstructCRMu(const muc::unique_ptrvec<LGAHit>& eventHit, std::string_view method) -> std::unique_ptr<CRMuEvent> {
     const auto eventID{*Get<"EvtID">(*eventHit.front())};
     if (std::ranges::any_of(eventHit, [&](auto&& h) { return Get<"EvtID">(*h) != eventID; })) {
         Mustard::Throw<std::runtime_error>("Event IDs in digi data are not all the same");

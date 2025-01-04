@@ -7,10 +7,10 @@
 namespace Musae::ReconLGA {
 
 auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& eventDigi, std::string_view method)
-    -> std::vector<std::unique_ptr<LGAHit>> {
+    -> muc::unique_ptrvec<LGAHit> {
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 
-    std::vector<std::unique_ptr<LGAHit>> eventHit;
+    muc::unique_ptrvec<LGAHit> eventHit;
     eventHit.reserve(lga.NModule());
     LGADigiMap<LGADigi*> goodEventDigi;
     goodEventDigi.reserve(lga.NModule());

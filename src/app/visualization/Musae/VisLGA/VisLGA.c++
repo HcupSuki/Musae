@@ -17,6 +17,8 @@
 #include "TApplication.h"
 #include "TFile.h"
 
+#include "muc/ptrvec"
+
 #include "fmt/core.h"
 
 #include <cstdio>
@@ -65,12 +67,12 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
     auto lgaHitData{fullLGAHitData.Filter(Filter, {"EvtID"})};
     auto cRMuEventData{fullCRMuHitData.Filter(Filter, {"EvtID"})};
 
-    auto firstEvent{true};
+    auto firstEvent{true}; // magic
     Mustard::Data::SeqProcessor{}.Process<Musae::Data::LGADigi, Musae::Data::LGAHit, Musae::Data::CRMuEvent>(
         {lgaDigiData, lgaHitData, cRMuEventData}, "EvtID",
-        [&](const DataVector<LGADigi>& lgaDigi,
-            const DataVector<LGAHit>& lgaHit,
-            const DataVector<CRMuEvent>& cRMuEvent) {
+        [&](const muc::shared_ptrvec<LGADigi>& lgaDigi,
+            const muc::shared_ptrvec<LGAHit>& lgaHit,
+            const muc::shared_ptrvec<CRMuEvent>& cRMuEvent) {
             if (lgaDigi.empty()) {
                 Mustard::PrintError("Empty LGA digi data, skipping the event");
                 return;
@@ -95,13 +97,14 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
                     std::getc(stdin);
                 }
                 canvas->DrawClone();
+                TCanvas c; // magic
             }
         });
 
     if (outputFile == nullptr) {
-        TCanvas c; // magic
         Mustard::Print("Press enter twice to exit...");
         std::getc(stdin);
+        Mustard::Print("Press enter again to exit...");
         std::getc(stdin);
     }
 
