@@ -102,10 +102,12 @@ public:
     auto LuminousDigiEnergyThreshold() const -> auto { return *fLuminousDigiEnergyThreshold; }
     auto NLuminousDigiThresholdPerDirection() const -> auto { return *fNLuminousDigiThresholdPerDirection; }
     auto NHitThreshold() const -> auto { return *fNHitThreshold; }
+    auto SoftDeadTime() const -> auto { return *fSoftDeadTime; }
 
     auto LuminousDigiEnergyThreshold(double val) -> void { fLuminousDigiEnergyThreshold = val; }
     auto NLuminousDigiThresholdPerDirection(int val) -> void { fNLuminousDigiThresholdPerDirection = val; }
     auto NHitThreshold(int val) -> void { fNHitThreshold = val; }
+    auto SoftDeadTime(double val) -> void { fSoftDeadTime = val; }
 
 private:
     // Geometry
@@ -156,6 +158,7 @@ private:
     Simple<double> fLuminousDigiEnergyThreshold;
     Simple<int> fNLuminousDigiThresholdPerDirection;
     Simple<int> fNHitThreshold;
+    Simple<double> fSoftDeadTime;
 };
 
 } // namespace Musae::Detector::Description
