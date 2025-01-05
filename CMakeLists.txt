@@ -95,7 +95,8 @@ include(${MUSAE_PROJECT_CMAKE_DIR}/MusaeCompileConfig.cmake)
 add_subdirectory(${PROJECT_SOURCE_DIR})
 # main program
 add_executable(Musae Musae.c++)
-target_link_libraries(Musae MusaeAppReconstruction
+target_link_libraries(Musae MusaeAppAnalysis
+                            MusaeAppReconstruction
                             MusaeAppSimulation
                             MusaeAppUtility
                             MusaeAppVisualization)
