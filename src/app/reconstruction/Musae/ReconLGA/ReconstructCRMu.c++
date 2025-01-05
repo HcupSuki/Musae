@@ -3,6 +3,9 @@
 
 #include "Mustard/Utility/PrettyLog.h++"
 
+#include "CLHEP/Geometry/Point3D.h"
+#include "CLHEP/Geometry/Transform3D.h"
+#include "CLHEP/Geometry/Vector3D.h"
 #include "CLHEP/Vector/ThreeVector.h"
 
 #include "Math/WrappedFunction.h"
@@ -30,10 +33,10 @@ auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
     const auto xScale{muc::midpoint(lga.ScintillatorWidthX(), lga.ScintillatorWidthY())};
 
     ROOT::Minuit2::Minuit2Minimizer minimizer;
-    minimizer.SetVariable(0, "x0", 0, 0.001 * xScale);
-    minimizer.SetVariable(1, "y0", 0, 0.001 * xScale);
-    minimizer.SetVariable(2, "dX", 0, 0.001);
-    minimizer.SetVariable(3, "dY", 0, 0.001);
+    minimizer.SetVariable(0, "x0", 0, 0.01 * xScale);
+    minimizer.SetVariable(1, "y0", 0, 0.01 * xScale);
+    minimizer.SetVariable(2, "dX", 0, 0.01);
+    minimizer.SetVariable(3, "dY", 0, 0.01);
     minimizer.SetFunction(Square);
     minimizer.Minimize();
     const auto minimum{minimizer.State()};
@@ -41,8 +44,9 @@ auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
         return nullptr;
     }
 
-    const CLHEP::Hep3Vector x0{minimum.Value(0), minimum.Value(1), 0};
-    const CLHEP::Hep3Vector d{minimum.Value(2), minimum.Value(3), 1};
+    const auto x0(lga.Rotation() * HepGeom::Point3D<double>{minimum.Value(0), minimum.Value(1), 0});
+    const auto d(lga.Rotation() * HepGeom::Vector3D<double>{minimum.Value(2), minimum.Value(3), 1});
+
     const auto t0{muc::ranges::transform_reduce(
                       eventHit, 0., std::plus{},
                       [](auto&& h) {
@@ -58,7 +62,7 @@ auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
     for (auto&& hit : eventHit) { Get<"HitID">(*event)->emplace_back(Get<"HitID">(*hit)); };
     Get<"chi2">(*event) = minimum.Fval();
     Get<"t0">(*event) = t0;
-    Get<"x0">(*event) = x0;
+    Get<"x0">(*event) = static_cast<CLHEP::Hep3Vector>(x0);
     Get<"theta">(*event) = d.theta();
     Get<"phi">(*event) = d.phi();
     return event;
