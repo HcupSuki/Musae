@@ -23,6 +23,46 @@ namespace HitReconstruction {
 namespace internal {
 
 template<muc::ceta_string AWeight>
+auto Weighted1D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
+    const auto& lga{Detector::Description::LGA::Instance()};
+
+    Mustard::Math::Statistic<1> time;
+    for (auto&& [edge, digiPerEdge] : digiData) {
+        for (auto&& digi : std::as_const(digiPerEdge)) {
+            time.Fill(Get<"t">(*digi), Get<AWeight>(*digi));
+        }
+    }
+
+    Mustard::Math::Statistic<1> x;
+    for (auto&& digi : digiData.at('x')) {
+        x.Fill(lga.ChannelInfo(Get<"channelID">(*digi)).edgePosition, Get<AWeight>(*digi));
+    }
+    Mustard::Math::Statistic<1> y;
+    for (auto&& digi : digiData.at('y')) {
+        y.Fill(lga.ChannelInfo(Get<"channelID">(*digi)).edgePosition, Get<AWeight>(*digi));
+    }
+
+    auto hit{std::make_unique_for_overwrite<LGAHit>()};
+    Get<"t">(*hit) = time.Mean() + Get<"t0">(*digiData.at('x').front()) * CLHEP::ps;
+    Get<"sigmaT">(*hit) = time.StdDev();
+    Get<"x">(*hit) = {static_cast<float>(x.Mean()), static_cast<float>(y.Mean())};
+    Get<"covX">(*hit) = {static_cast<float>(x.Variance()), static_cast<float>(y.Variance()), 0.f};
+    return hit;
+}
+
+} // namespace internal
+
+auto EnergyWeighted1D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
+    return internal::Weighted1D<"energy">(digiData);
+}
+
+auto NormalizedEnergyWeighted1D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
+    return internal::Weighted1D<"NormalizedEnergy">(digiData);
+}
+
+namespace internal {
+
+template<muc::ceta_string AWeight>
 auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData) -> std::unique_ptr<LGAHit> {
     const auto& lga{Detector::Description::LGA::Instance()};
 
@@ -88,7 +128,11 @@ auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiD
     }
 
     std::unique_ptr<LGAHit> hit;
-    if (method == "EnergyWeighted2D") {
+    if (method == "EnergyWeighted1D") {
+        hit = HitReconstruction::EnergyWeighted1D(digiData);
+    } else if (method == "NormalizedEnergyWeighted1D") {
+        hit = HitReconstruction::NormalizedEnergyWeighted1D(digiData);
+    } else if (method == "EnergyWeighted2D") {
         hit = HitReconstruction::EnergyWeighted2D(digiData);
     } else if (method == "NormalizedEnergyWeighted2D") {
         hit = HitReconstruction::NormalizedEnergyWeighted2D(digiData);
