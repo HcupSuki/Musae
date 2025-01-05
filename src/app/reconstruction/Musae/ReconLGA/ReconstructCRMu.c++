@@ -45,8 +45,14 @@ auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
     const CLHEP::Hep3Vector d{minimum.Value(2), minimum.Value(3), 1};
     const auto t0{muc::ranges::transform_reduce(
                       eventHit, 0., std::plus{},
-                      [](auto&& h) { return Get<"t">(*h); }) /
-                  eventHit.size()};
+                      [](auto&& h) {
+                          return Get<"t">(*h) / muc::pow<2>(*Get<"sigmaT">(*h));
+                      }) /
+                  muc::ranges::transform_reduce(
+                      eventHit, 0., std::plus{},
+                      [](auto&& h) {
+                          return 1 / muc::pow<2>(*Get<"sigmaT">(*h));
+                      })};
 
     auto event{std::make_unique_for_overwrite<CRMuEvent>()};
     for (auto&& hit : eventHit) { Get<"HitID">(*event)->emplace_back(Get<"HitID">(*hit)); };

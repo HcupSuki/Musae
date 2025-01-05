@@ -57,11 +57,11 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     cli->add_argument("-e", "--output-event-tree").help("Output event tree name.").default_value("CRMuEvent"s).required().nargs(1);
     cli->add_argument("-d", "--soft-dead-time").help("Artificial dead time (in millisecond).").default_value(0.).required().nargs(1).scan<'g', double>();
     cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").default_value("EnergyWeighted2D"s).required().nargs(1);
-    cli->add_argument("-c", "--no-crmu").help("Skip cosmic-ray muon event reconstruction.").flag();
+    cli->add_argument("-k", "--no-crmu").help("Skip cosmic-ray muon event reconstruction.").flag();
     cli->add_argument("-u", "--crmu-method").help("Cosmic-ray muon event reconstruction method.").default_value("LeastChiSquare"s).required().nargs(1);
     Mustard::Env::BasicEnv env{argc, argv, cli};
 
-    const auto softDeadTime{cli->get<double>("--soft-dead-time") * CLHEP::ms};
+    const auto softDeadTime{std::llround(cli->get<double>("--soft-dead-time") * (CLHEP::ms / CLHEP::ps))};
     const auto hitReconstructionMethod{cli->get("--hit-method")};
     const auto reconstructCRMu{cli["--no-crmu"] == false};
     const auto cRMuReconstructionMethod{cli->get("--crmu-method")};
@@ -103,32 +103,27 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
 
     auto extendedData{
         data.Define(
-                "NormalizedEnergy",
-                [&](unsigned channelID, float energy) -> float {
-                    return energy / flatChannelSummary.at(channelID).meanEnergy;
-                },
-                {"channelID", "energy"})
-            .Redefine(
-                "time",
-                [](Long64_t time) {
-                    return time * CLHEP::ps;
-                },
-                {"time"})};
+            "NormalizedEnergy",
+            [&](unsigned channelID, float energy) -> float {
+                return energy / flatChannelSummary.at(channelID).meanEnergy;
+            },
+            {"channelID", "energy"})};
 
     // main reconstruction loop
 
     Mustard::Data::Output<Musae::Data::LGADigi> lgaDigiOutput{cli->get("--output-digi-tree"), "Reconstructed LGA hit digi"};
     Mustard::Data::Output<Musae::Data::LGAHit> lgaHitOutput{cli->get("--output-hit-tree"), "Reconstructed LGA hit data"};
     Mustard::Data::Output<Musae::Data::CRMuEvent> cRMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
-    std::optional<double> triggerTime{};
-    std::optional<double> eventCloseTime{};
+    std::optional<long long> triggerTime{};
+    std::optional<long long> eventCloseTime{};
+    const auto coincidenceTimeWindow{std::llround(lga.CoincidenceTimeWindow() / CLHEP::ps)};
     LGADigiMap<std::unique_ptr<LGADigi>> eventDigi; // {moduleID, edge} -> [digi...]
 
     int eventID{};
     ROOT::RDF::Experimental::AddProgressBar(data);
     Mustard::PrintLn("Reconstructing events...");
     extendedData.Foreach(
-        [&](double time, unsigned channelID, float energy, float normalizedEnergy) {
+        [&](Long64_t time, unsigned channelID, float energy, float normalizedEnergy) {
             // insert coincidence hit
             if (eventCloseTime and std::abs(time - *eventCloseTime) < softDeadTime) {
                 return;
@@ -136,11 +131,13 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
             if (triggerTime == std::nullopt) {
                 triggerTime = time;
             }
-            if (std::abs(time - *triggerTime) < lga.CoincidenceTimeWindow()) {
+            const auto t{time - *triggerTime};
+            if (std::abs(t) < coincidenceTimeWindow) {
                 const auto ch{lga.TryChannelInfo(channelID)};
                 if (ch == nullptr) { return; }
                 // make and insert a digi
-                auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID, false,
+                auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID,
+                                                    *triggerTime, t * CLHEP::ps, false,
                                                     ch->moduleID, ch->edge, ch->fiberLocalID,
                                                     normalizedEnergy)};
                 eventDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
@@ -179,7 +176,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
         {"time", "channelID", "energy", "NormalizedEnergy"});
     Mustard::PrintLn("Completed.");
 
-    const auto totalSoftDeadTime{eventID * softDeadTime};
+    const auto totalSoftDeadTime{eventID * (softDeadTime * CLHEP::ps)};
     TNamed{fmt::format("Soft dead time: {:.1f} s", totalSoftDeadTime / CLHEP::s),
            fmt::format("Total soft dead time: {} s, accumulated from {} events' {}-ms dead time",
                        totalSoftDeadTime / CLHEP::s, eventID, softDeadTime / CLHEP::ms)}

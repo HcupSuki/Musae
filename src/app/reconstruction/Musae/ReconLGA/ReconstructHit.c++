@@ -29,7 +29,7 @@ auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData)
     Mustard::Math::Statistic<1> time;
     for (auto&& [edge, digiPerEdge] : digiData) {
         for (auto&& digi : std::as_const(digiPerEdge)) {
-            time.Fill(Get<"time">(*digi), Get<AWeight>(*digi));
+            time.Fill(Get<"t">(*digi), Get<AWeight>(*digi));
         }
     }
 
@@ -42,7 +42,8 @@ auto Weighted2D(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData)
     }
 
     auto hit{std::make_unique_for_overwrite<LGAHit>()};
-    Get<"t">(*hit) = time.Mean();
+    Get<"t">(*hit) = time.Mean() + Get<"t0">(*digiData.at('x').front()) * CLHEP::ps;
+    Get<"sigmaT">(*hit) = time.StdDev();
     Get<"x">(*hit) = position.Mean();
     Get<"covX">(*hit) = {static_cast<float>(position.Variance(0)),
                          static_cast<float>(position.Variance(1)),
