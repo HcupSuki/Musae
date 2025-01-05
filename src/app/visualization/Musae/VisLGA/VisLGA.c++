@@ -47,7 +47,7 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
 
     ROOT::RDataFrame fullLGADigiData{cli->get("--input-digi-tree"), cli->get<std::vector<std::string>>("input")};
     ROOT::RDataFrame fullLGAHitData{cli->get("--input-hit-tree"), cli->get<std::vector<std::string>>("input")};
-    ROOT::RDataFrame fullCRMuHitData{cli->get("--input-event-tree"), cli->get<std::vector<std::string>>("input")};
+    ROOT::RDataFrame fullCRMuEventData{cli->get("--input-event-tree"), cli->get<std::vector<std::string>>("input")};
 
     std::unique_ptr<TFile> outputFile;
     if (const auto outputFilePath{cli->present("--output")}) {
@@ -65,9 +65,8 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
     const EventIDFilter Filter{cli->get<std::vector<std::string>>("--display-event")};
     auto lgaDigiData{fullLGADigiData.Filter(Filter, {"EvtID"})};
     auto lgaHitData{fullLGAHitData.Filter(Filter, {"EvtID"})};
-    auto cRMuEventData{fullCRMuHitData.Filter(Filter, {"EvtID"})};
+    auto cRMuEventData{fullCRMuEventData.Filter(Filter, {"EvtID"})};
 
-    auto firstEvent{true}; // magic
     Mustard::Data::SeqProcessor{}.Process<Musae::Data::LGADigi, Musae::Data::LGAHit, Musae::Data::CRMuEvent>(
         {lgaDigiData, lgaHitData, cRMuEventData}, "EvtID",
         [&](const muc::shared_ptrvec<LGADigi>& lgaDigi,
@@ -90,22 +89,15 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
             if (outputFile) {
                 canvas->Write();
             } else {
-                if (firstEvent) {
-                    firstEvent = false;
-                } else {
-                    Mustard::Print("Press enter to display next event...");
-                    std::getc(stdin);
-                }
-                canvas->DrawClone();
-                TCanvas c; // magic
+                canvas->Update();
+                Mustard::Print("Press enter to display next event...");
+                std::getchar();
             }
         });
 
     if (outputFile == nullptr) {
-        Mustard::Print("Press enter twice to exit...");
-        std::getc(stdin);
-        Mustard::Print("Press enter again to exit...");
-        std::getc(stdin);
+        Mustard::Print("Press enter to exit...");
+        std::getchar();
     }
 
     return EXIT_SUCCESS;
