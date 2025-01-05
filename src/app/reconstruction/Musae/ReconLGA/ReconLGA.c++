@@ -9,6 +9,7 @@
 #include "Musae/ReconLGA/Type.h++"
 
 #include "Mustard/Data/Output.h++"
+#include "Mustard/Detector/Description/DescriptionIO.h++"
 #include "Mustard/Env/BasicEnv.h++"
 #include "Mustard/Env/CLI/BasicCLI.h++"
 #include "Mustard/Utility/MakeTextTMacro.h++"
@@ -55,13 +56,12 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     cli->add_argument("-g", "--output-digi-tree").help("Output digi tree name.").default_value("LGADigi"s).required().nargs(1);
     cli->add_argument("-h", "--output-hit-tree").help("Output hit tree name.").default_value("LGAHit"s).required().nargs(1);
     cli->add_argument("-e", "--output-event-tree").help("Output event tree name.").default_value("CRMuEvent"s).required().nargs(1);
-    cli->add_argument("-d", "--soft-dead-time").help("Artificial dead time (in millisecond).").default_value(0.).required().nargs(1).scan<'g', double>();
     cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").default_value("EnergyWeighted2D"s).required().nargs(1);
     cli->add_argument("-k", "--no-crmu").help("Skip cosmic-ray muon event reconstruction.").flag();
     cli->add_argument("-u", "--crmu-method").help("Cosmic-ray muon event reconstruction method.").default_value("LeastChiSquare"s).required().nargs(1);
+    cli->add_argument("-c", "--lga-description").help("LGA description YAML file path.").nargs(1);
     Mustard::Env::BasicEnv env{argc, argv, cli};
 
-    const auto softDeadTime{std::llround(cli->get<double>("--soft-dead-time") * (CLHEP::ms / CLHEP::ps))};
     const auto hitReconstructionMethod{cli->get("--hit-method")};
     const auto reconstructCRMu{cli["--no-crmu"] == false};
     const auto cRMuReconstructionMethod{cli->get("--crmu-method")};
@@ -76,6 +76,14 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
         return EXIT_FAILURE;
     }
 
+    if (const auto lgaDescriptionPath{cli->present("--lga-description")}) {
+        Mustard::Detector::Description::DescriptionIO::
+            Ixport<Musae::Detector::Description::LGA>(*lgaDescriptionPath);
+    }
+    Mustard::MakeTextTMacro(Mustard::Detector::Description::DescriptionIO::
+                                ToString<Musae::Detector::Description::LGA>(),
+                            "LGA")
+        ->Write();
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 
     // digi data summary
@@ -117,6 +125,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     std::optional<long long> triggerTime{};
     std::optional<long long> eventCloseTime{};
     const auto coincidenceTimeWindow{std::llround(lga.CoincidenceTimeWindow() / CLHEP::ps)};
+    const auto softDeadTime{std::llround(lga.SoftDeadTime() / CLHEP::ps)};
     LGADigiMap<std::unique_ptr<LGADigi>> eventDigi; // {moduleID, edge} -> [digi...]
 
     int eventID{};
