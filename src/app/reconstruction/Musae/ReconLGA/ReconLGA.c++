@@ -43,7 +43,7 @@ namespace Musae::ReconLGA {
 ReconLGA::ReconLGA() :
     Subprogram{"ReconLGA", "LGA event reconstruction program."} {}
 
-using namespace std::string_literals;
+using namespace std::literals;
 
 auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     Mustard::Env::CLI::BasicCLI<> cli;
@@ -78,7 +78,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
 
     if (const auto lgaDescriptionPath{cli->present("--lga-description")}) {
         Mustard::Detector::Description::DescriptionIO::
-            Ixport<Musae::Detector::Description::LGA>(*lgaDescriptionPath);
+            Import<Musae::Detector::Description::LGA>(*lgaDescriptionPath);
     }
     Mustard::MakeTextTMacro(Mustard::Detector::Description::DescriptionIO::
                                 ToString<Musae::Detector::Description::LGA>(),
@@ -89,100 +89,94 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     // digi data summary
 
     muc::flat_hash_map<int, ChannelSummary> flatChannelSummary;
-    Mustard::PrintLn("Summarizing LGA digi data...");
+    const auto SummarizeDigi{[&](unsigned channelID, float energy) {
+        auto& ch{flatChannelSummary[channelID]};
+        ch.channelID = channelID;
+        ch.meanEnergy += energy;
+        ++ch.triggerCount;
+    }};
+
     ROOT::RDF::Experimental::AddProgressBar(data);
-    data.Foreach(
-        [&](unsigned channelID, float energy) {
-            auto& ch{flatChannelSummary[channelID]};
-            ch.channelID = channelID;
-            ch.meanEnergy += energy;
-            ++ch.triggerCount;
-        },
-        {"channelID", "energy"});
-    Mustard::PrintLn("Completed.");
+    Mustard::PrintLn("Summarizing LGA digi data...");
+    data.Foreach(SummarizeDigi, {"channelID", "energy"});
     for (auto&& [_, ch] : flatChannelSummary) {
         ch.meanEnergy /= ch.triggerCount;
     }
+    Mustard::PrintLn("Completed.");
+
     const auto channelSummaryText{FormatChannelSummary(flatChannelSummary)};
     Mustard::Print<'W'>("{}", channelSummaryText);
     Mustard::MakeTextTMacro(channelSummaryText, cli->get("--output-digi-summary"))->Write();
 
-    // define new columns
+    // reconstruction function
 
-    auto extendedData{
-        data.Define(
-            "NormalizedEnergy",
-            [&](unsigned channelID, float energy) -> float {
-                return energy / flatChannelSummary.at(channelID).meanEnergy;
-            },
-            {"channelID", "energy"})};
-
-    // main reconstruction loop
-
-    Mustard::Data::Output<Musae::Data::LGADigi> lgaDigiOutput{cli->get("--output-digi-tree"), "Reconstructed LGA hit digi"};
-    Mustard::Data::Output<Musae::Data::LGAHit> lgaHitOutput{cli->get("--output-hit-tree"), "Reconstructed LGA hit data"};
-    Mustard::Data::Output<Musae::Data::CRMuEvent> cRMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
     std::optional<long long> triggerTime{};
     std::optional<long long> eventCloseTime{};
     const auto coincidenceTimeWindow{std::llround(lga.CoincidenceTimeWindow() / CLHEP::ps)};
     const auto softDeadTime{std::llround(lga.SoftDeadTime() / CLHEP::ps)};
-    LGADigiMap<std::unique_ptr<LGADigi>> eventDigi; // {moduleID, edge} -> [digi...]
-
     int eventID{};
+    LGADigiMap<std::unique_ptr<LGADigi>> eventDigi; // {moduleID, edge} -> [digi...]
+    Mustard::Data::Output<Musae::Data::LGADigi> lgaDigiOutput{cli->get("--output-digi-tree"), "Reconstructed LGA hit digi"};
+    Mustard::Data::Output<Musae::Data::LGAHit> lgaHitOutput{cli->get("--output-hit-tree"), "Reconstructed LGA hit data"};
+    Mustard::Data::Output<Musae::Data::CRMuEvent> cRMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
+    const auto ProcessDigi{[&](Long64_t time, unsigned channelID, float energy) {
+        // insert coincidence hit
+        if (eventCloseTime and std::abs(time - *eventCloseTime) < softDeadTime) {
+            return;
+        }
+        if (triggerTime == std::nullopt) {
+            triggerTime = time;
+            eventCloseTime = std::nullopt;
+        }
+        const auto t{time - *triggerTime};
+        if (std::abs(t) < coincidenceTimeWindow) {
+            const auto ch{lga.TryChannelInfo(channelID)};
+            if (ch == nullptr) { return; }
+            // make and insert a digi
+            const auto normalizedEnergy{energy / flatChannelSummary.at(channelID).meanEnergy};
+            auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID,
+                                                *triggerTime, t * CLHEP::ps, false,
+                                                ch->moduleID, ch->edge, ch->fiberLocalID,
+                                                normalizedEnergy)};
+            eventDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
+            return;
+        }
+
+        // process coincidence digi
+        [&] {
+            // reconstruct hits
+            const auto eventHit{ReconstructAllHit(eventDigi, hitReconstructionMethod)};
+            if (eventHit.empty()) { return; }
+            for (auto&& [_, moduleDigi] : std::as_const(eventDigi)) {
+                for (auto&& [_, digi] : std::as_const(moduleDigi)) {
+                    lgaDigiOutput.Fill(digi);
+                }
+            }
+            lgaHitOutput.Fill(eventHit);
+            // reconstruct cosmic-ray muon event
+            std::unique_ptr<CRMuEvent> cRMuEvent;
+            if (reconstructCRMu) {
+                cRMuEvent = ReconstructCRMu(eventHit, cRMuReconstructionMethod);
+                if (cRMuEvent) {
+                    cRMuEventOutput.Fill(*cRMuEvent);
+                } else {
+                    Mustard::PrintWarning(fmt::format("Failed to reconstruct event {}", eventID));
+                }
+            }
+            eventCloseTime = time;
+            ++eventID;
+        }();
+
+        // reset coincidence hit
+        triggerTime = std::nullopt;
+        eventDigi.clear();
+    }};
+
+    // main reconstruction loop
+
     ROOT::RDF::Experimental::AddProgressBar(data);
     Mustard::PrintLn("Reconstructing events...");
-    extendedData.Foreach(
-        [&](Long64_t time, unsigned channelID, float energy, float normalizedEnergy) {
-            // insert coincidence hit
-            if (eventCloseTime and std::abs(time - *eventCloseTime) < softDeadTime) {
-                return;
-            }
-            if (triggerTime == std::nullopt) {
-                triggerTime = time;
-            }
-            const auto t{time - *triggerTime};
-            if (std::abs(t) < coincidenceTimeWindow) {
-                const auto ch{lga.TryChannelInfo(channelID)};
-                if (ch == nullptr) { return; }
-                // make and insert a digi
-                auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID,
-                                                    *triggerTime, t * CLHEP::ps, false,
-                                                    ch->moduleID, ch->edge, ch->fiberLocalID,
-                                                    normalizedEnergy)};
-                eventDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
-                return;
-            }
-
-            // process coincidence hit
-            [&] {
-                // reconstruct hits
-                const auto eventHit{ReconstructAllHit(eventDigi, hitReconstructionMethod)};
-                if (eventHit.empty()) { return; }
-                for (auto&& [_, moduleDigi] : std::as_const(eventDigi)) {
-                    for (auto&& [_, digi] : std::as_const(moduleDigi)) {
-                        lgaDigiOutput.Fill(digi);
-                    }
-                }
-                lgaHitOutput.Fill(eventHit);
-                // reconstruct cosmic-ray muon event
-                std::unique_ptr<CRMuEvent> cRMuEvent;
-                if (reconstructCRMu) {
-                    cRMuEvent = ReconstructCRMu(eventHit, cRMuReconstructionMethod);
-                    if (cRMuEvent) {
-                        cRMuEventOutput.Fill(*cRMuEvent);
-                    } else {
-                        Mustard::PrintWarning(fmt::format("Failed to reconstruct event {}", eventID));
-                    }
-                }
-                eventCloseTime = time;
-                ++eventID;
-            }();
-
-            // reset coincidence hit
-            triggerTime = std::nullopt;
-            eventDigi.clear();
-        },
-        {"time", "channelID", "energy", "NormalizedEnergy"});
+    data.Foreach(ProcessDigi, {"time", "channelID", "energy"});
     Mustard::PrintLn("Completed.");
 
     const auto totalSoftDeadTime{eventID * (softDeadTime * CLHEP::ps)};
