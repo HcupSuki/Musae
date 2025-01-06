@@ -78,7 +78,7 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
             style.Draw();
 
             c.SetTheta(90);
-            c.SetPhi(0);
+            c.SetPhi(180); // 180 to fit the axis!
 
             h.SetLineColorAlpha(kBlack, 0);
             h.GetXaxis()->SetTitle("#phi (rad)");
@@ -91,7 +91,7 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
             polarPad.SetFillStyle(4444); // transparent
             polarPad.Draw();
             polarPad.cd();
-            TGraphPolargram polarAxis{"g", 0, rawHModel[2], -pi, pi};
+            TGraphPolargram polarAxis{"g", 0, rawHModel[2], 0, 2 * pi};
             polarAxis.SetNdivPolar(8);
             polarAxis.SetNdivRadial(4);
             polarAxis.Draw("O");
