@@ -16,6 +16,8 @@
 #include "muc/math"
 #include "muc/numeric"
 
+#include "gsl/gsl"
+
 #include <algorithm>
 #include <functional>
 #include <tuple>
@@ -25,27 +27,48 @@ namespace Musae::ReconLGA {
 namespace {
 namespace CRMuReconstruction {
 
-namespace internal {
-
-auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
-                 const ROOT::Math::IMultiGenFunction& Square) -> std::unique_ptr<CRMuEvent> {
+template<bool ASameWeight>
+auto LeastChiSquare(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_ptr<CRMuEvent> {
     const auto& lga{Detector::Description::LGA::Instance()};
-    const auto xScale{muc::midpoint(lga.ScintillatorWidthX(), lga.ScintillatorWidthY())};
+    const auto nHit{gsl::narrow<int>(eventHit.size())};
 
-    ROOT::Minuit2::Minuit2Minimizer minimizer;
-    minimizer.SetVariable(0, "x0", 0, 0.01 * xScale);
-    minimizer.SetVariable(1, "y0", 0, 0.01 * xScale);
-    minimizer.SetVariable(2, "dX", 0, 0.01);
-    minimizer.SetVariable(3, "dY", 0, 0.01);
-    minimizer.SetFunction(Square);
-    minimizer.Minimize();
-    const auto minimum{minimizer.State()};
-    if (not minimum.IsValid()) {
-        return nullptr;
+    Eigen::VectorXd measurement;
+    measurement.resize(2 * nHit);
+    for (int i{}; i < nHit; ++i) {
+        const auto [x, y]{*Get<"x">(*eventHit[i])};
+        measurement[2 * i] = x;
+        measurement[2 * i + 1] = y;
     }
 
-    const auto x0(lga.Rotation() * HepGeom::Point3D<double>{minimum.Value(0), minimum.Value(1), 0});
-    const auto d(lga.Rotation() * HepGeom::Vector3D<double>{minimum.Value(2), minimum.Value(3), 1});
+    Eigen::MatrixXd covarianceInverse;
+    covarianceInverse.resize(2 * nHit, 2 * nHit);
+    if constexpr (ASameWeight) {
+        covarianceInverse.setIdentity();
+    } else {
+        covarianceInverse.setZero();
+        for (int i{}; i < nHit; ++i) {
+            const auto [varX, varY, covXY]{*Get<"covX">(*eventHit[i])};
+            covarianceInverse.block<2, 2>(2 * i, 2 * i) = Eigen::Matrix2d{
+                {varX,  covXY},
+                {covXY, varY }
+            }.inverse();
+        }
+    }
+
+    Eigen::MatrixX4d coefficient;
+    coefficient.resize(2 * nHit, 4);
+    for (int i{}; i < nHit; ++i) {
+        coefficient.block<2, 2>(2 * i, 0) = Eigen::Matrix2d::Identity();
+        coefficient.block<2, 2>(2 * i, 2) = lga.ModuleZ(Get<"ModID">(*eventHit[i])) * Eigen::Matrix2d::Identity();
+    }
+
+    const auto coeffTCovInv{(coefficient.transpose() * covarianceInverse).eval()};
+    const auto param{((coeffTCovInv * coefficient).ldlt().solve(coeffTCovInv * measurement)).eval()};
+
+    const auto deltaX{(coefficient * param - measurement).eval()};
+    const auto chiSquare{deltaX.dot(covarianceInverse * deltaX)};
+    const auto x0(lga.Rotation() * HepGeom::Point3D<double>{param[0], param[1], 0});
+    const auto d(lga.Rotation() * HepGeom::Vector3D<double>{param[2], param[3], 1});
 
     const auto t0{muc::ranges::transform_reduce(
                       eventHit, 0., std::plus{},
@@ -60,76 +83,12 @@ auto LeastSquare(const muc::unique_ptrvec<LGAHit>& eventHit,
 
     auto event{std::make_unique_for_overwrite<CRMuEvent>()};
     for (auto&& hit : eventHit) { Get<"HitID">(*event)->emplace_back(Get<"HitID">(*hit)); };
-    Get<"chi2">(*event) = minimum.Fval();
+    Get<"chi2">(*event) = chiSquare;
     Get<"t0">(*event) = t0;
     Get<"x0">(*event) = static_cast<CLHEP::Hep3Vector>(x0);
     Get<"theta">(*event) = d.theta();
     Get<"phi">(*event) = d.phi();
     return event;
-}
-
-} // namespace internal
-
-auto LeastChiSquare(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_ptr<CRMuEvent> {
-    const auto& lga{Detector::Description::LGA::Instance()};
-    struct HitForFit {
-        Eigen::Vector2d x;
-        Eigen::Matrix2d invCov;
-        double z;
-    };
-    std::vector<HitForFit> hitForFit;
-    hitForFit.reserve(eventHit.size());
-    for (auto&& hit : eventHit) {
-        const auto [varX, varY, covXY]{*Get<"covX">(*hit)};
-        const Eigen::Matrix2d cov{
-            {varX,  covXY},
-            {covXY, varY }
-        };
-        hitForFit.push_back({Get<"x">(*hit).As<Eigen::Vector2d>(),
-                             cov.inverse(),
-                             lga.ModuleZ(Get<"ModID">(*hit))});
-    }
-    const ROOT::Math::WrappedMultiFunction ChiSquare{
-        [&](const double* param) {
-            const Eigen::Vector2d x0{param[0], param[1]};
-            const auto d(Eigen::Vector3d{param[2], param[3], 1}.normalized());
-            const Eigen::Vector2d d0{d.x(), d.y()};
-            return muc::ranges::transform_reduce(
-                hitForFit, 0., std::plus{},
-                [&](auto&& hit) {
-                    const Eigen::Vector2d delta{hit.x - (x0 + (hit.z / d.z()) * d0)};
-                    return delta.dot(hit.invCov * delta);
-                });
-        }};
-    return internal::LeastSquare(eventHit, ChiSquare);
-}
-
-auto LeastChiSquareSameWeight(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_ptr<CRMuEvent> {
-    const auto& lga{Detector::Description::LGA::Instance()};
-    const auto variance{muc::pow<2>(lga.LGACellWidth()) / 12};
-    struct HitForFit {
-        Eigen::Vector2d x;
-        double z;
-    };
-    std::vector<HitForFit> hitForFit;
-    hitForFit.reserve(eventHit.size());
-    for (auto&& hit : eventHit) {
-        hitForFit.push_back({Get<"x">(*hit).As<Eigen::Vector2d>(),
-                             lga.ModuleZ(Get<"ModID">(*hit))});
-    }
-    const ROOT::Math::WrappedMultiFunction ChiSquare{
-        [&](const double* param) {
-            const Eigen::Vector2d x0{param[0], param[1]};
-            const auto d(Eigen::Vector3d{param[2], param[3], 1}.normalized());
-            const Eigen::Vector2d d0{d.x(), d.y()};
-            return muc::ranges::transform_reduce(
-                hitForFit, 0., std::plus{},
-                [&](auto&& hit) {
-                    const Eigen::Vector2d delta{hit.x - (x0 + (hit.z / d.z()) * d0)};
-                    return delta.dot(delta) / variance;
-                });
-        }};
-    return internal::LeastSquare(eventHit, ChiSquare);
 }
 
 } // namespace CRMuReconstruction
@@ -143,9 +102,9 @@ auto ReconstructCRMu(const muc::unique_ptrvec<LGAHit>& eventHit, std::string_vie
 
     std::unique_ptr<CRMuEvent> event;
     if (method == "LeastChiSquare") {
-        event = CRMuReconstruction::LeastChiSquare(eventHit);
+        event = CRMuReconstruction::LeastChiSquare<false>(eventHit);
     } else if (method == "LeastChiSquareSameWeight") {
-        event = CRMuReconstruction::LeastChiSquareSameWeight(eventHit);
+        event = CRMuReconstruction::LeastChiSquare<true>(eventHit);
     } else {
         Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
     }
