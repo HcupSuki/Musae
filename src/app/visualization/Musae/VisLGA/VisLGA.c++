@@ -67,7 +67,9 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
     auto lgaHitData{fullLGAHitData.Filter(Filter, {"EvtID"})};
     auto cRMuEventData{fullCRMuEventData.Filter(Filter, {"EvtID"})};
 
-    Mustard::Data::SeqProcessor{}.Process<Musae::Data::LGADigi, Musae::Data::LGAHit, Musae::Data::CRMuEvent>(
+    Mustard::Data::SeqProcessor processor;
+    processor.PrintProgress(false);
+    processor.Process<Musae::Data::LGADigi, Musae::Data::LGAHit, Musae::Data::CRMuEvent>(
         {lgaDigiData, lgaHitData, cRMuEventData}, "EvtID",
         [&](const muc::shared_ptrvec<LGADigi>& lgaDigi,
             const muc::shared_ptrvec<LGAHit>& lgaHit,

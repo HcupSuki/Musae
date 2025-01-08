@@ -9,6 +9,7 @@
 #include "Musae/ReconLGA/Type.h++"
 
 #include "Mustard/Data/Output.h++"
+#include "Mustard/Data/SeqProcessor.h++"
 #include "Mustard/Detector/Description/DescriptionIO.h++"
 #include "Mustard/Env/BasicEnv.h++"
 #include "Mustard/Env/CLI/BasicCLI.h++"
@@ -18,7 +19,6 @@
 
 #include "CLHEP/Units/SystemOfUnits.h"
 
-#include "ROOT/RDFHelpers.hxx"
 #include "ROOT/RDataFrame.hxx"
 #include "TFile.h"
 #include "TMacro.h"
@@ -86,23 +86,28 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
         ->Write();
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 
+    Mustard::Data::SeqProcessor processor;
+
     // digi data summary
 
+    using ChannelIDAndEnergy = Mustard::Data::TupleModel<
+        Mustard::Data::Value<unsigned, "channelID">,
+        Mustard::Data::Value<float, "energy">>;
+
     muc::flat_hash_map<int, ChannelSummary> flatChannelSummary;
-    const auto SummarizeDigi{[&](unsigned channelID, float energy) {
-        auto& ch{flatChannelSummary[channelID]};
-        ch.channelID = channelID;
-        ch.meanEnergy += energy;
+    const auto SummarizeDigi{[&](std::shared_ptr<Mustard::Data::Tuple<ChannelIDAndEnergy>> digi) {
+        auto& ch{flatChannelSummary[Get<"channelID">(*digi)]};
+        ch.channelID = Get<"channelID">(*digi);
+        ch.meanEnergy += Get<"energy">(*digi);
         ++ch.triggerCount;
     }};
 
-    ROOT::RDF::Experimental::AddProgressBar(data);
     Mustard::PrintLn("Summarizing LGA digi data...");
-    data.Foreach(SummarizeDigi, {"channelID", "energy"});
+    processor.Process<ChannelIDAndEnergy>(data, SummarizeDigi);
     for (auto&& [_, ch] : flatChannelSummary) {
         ch.meanEnergy /= ch.triggerCount;
     }
-    Mustard::PrintLn("Completed.");
+    Mustard::PrintLn("Summarization completed.");
 
     const auto channelSummaryText{FormatChannelSummary(flatChannelSummary)};
     Mustard::Print<'W'>("{}", channelSummaryText);
@@ -119,26 +124,26 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     Mustard::Data::Output<Musae::Data::LGADigi> lgaDigiOutput{cli->get("--output-digi-tree"), "Reconstructed LGA hit digi"};
     Mustard::Data::Output<Musae::Data::LGAHit> lgaHitOutput{cli->get("--output-hit-tree"), "Reconstructed LGA hit data"};
     Mustard::Data::Output<Musae::Data::CRMuEvent> cRMuEventOutput{cli->get("--output-event-tree"), "Reconstructed cosmic-ray muon event"};
-    const auto ProcessDigi{[&](Long64_t time, unsigned channelID, float energy) {
+    const auto ProcessDigi{[&](std::shared_ptr<LGARawDigi> digi) {
         // insert coincidence hit
-        if (eventCloseTime and std::abs(time - *eventCloseTime) < softDeadTime) {
+        if (eventCloseTime and std::abs(Get<"time">(*digi) - *eventCloseTime) < softDeadTime) {
             return;
         }
         if (triggerTime == std::nullopt) {
-            triggerTime = time;
+            triggerTime = Get<"time">(*digi);
             eventCloseTime = std::nullopt;
         }
-        const auto t{time - *triggerTime};
+        const auto t{Get<"time">(*digi) - *triggerTime};
         if (std::abs(t) < coincidenceTimeWindow) {
-            const auto ch{lga.TryChannelInfo(channelID)};
+            const auto ch{lga.TryChannelInfo(Get<"channelID">(*digi))};
             if (ch == nullptr) { return; }
             // make and insert a digi
-            const auto normalizedEnergy{energy / flatChannelSummary.at(channelID).meanEnergy};
-            auto digi{std::make_unique<LGADigi>(time, channelID, energy, eventID,
-                                                *triggerTime, t * CLHEP::ps, false,
-                                                ch->moduleID, ch->edge, ch->fiberLocalID,
-                                                normalizedEnergy)};
-            eventDigi[ch->moduleID][ch->edge].emplace_back(std::move(digi));
+            const auto normalizedEnergy{Get<"energy">(*digi) / flatChannelSummary.at(Get<"channelID">(*digi)).meanEnergy};
+            eventDigi[ch->moduleID][ch->edge].emplace_back(
+                std::make_unique<LGADigi>(Get<"time">(*digi), Get<"channelID">(*digi), Get<"energy">(*digi),
+                                          eventID, *triggerTime, t * CLHEP::ps, false,
+                                          ch->moduleID, ch->edge, ch->fiberLocalID,
+                                          normalizedEnergy));
             return;
         }
 
@@ -163,7 +168,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
                     Mustard::PrintWarning(fmt::format("Failed to reconstruct event {}", eventID));
                 }
             }
-            eventCloseTime = time;
+            eventCloseTime = Get<"time">(*digi);
             ++eventID;
         }();
 
@@ -174,10 +179,9 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
 
     // main reconstruction loop
 
-    ROOT::RDF::Experimental::AddProgressBar(data);
     Mustard::PrintLn("Reconstructing events...");
-    data.Foreach(ProcessDigi, {"time", "channelID", "energy"});
-    Mustard::PrintLn("Completed.");
+    processor.Process<Musae::Data::LGARawDigi>(data, ProcessDigi);
+    Mustard::PrintLn("Reconstruction completed.");
 
     const auto totalSoftDeadTime{eventID * (softDeadTime * CLHEP::ps)};
     TNamed{fmt::format("Soft dead time: {:.1f} s", totalSoftDeadTime / CLHEP::s),

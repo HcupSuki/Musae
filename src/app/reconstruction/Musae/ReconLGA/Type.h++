@@ -10,6 +10,7 @@
 
 namespace Musae::ReconLGA {
 
+using LGARawDigi = Mustard::Data::Tuple<Musae::Data::LGARawDigi>;
 using LGADigi = Mustard::Data::Tuple<Musae::Data::LGADigi>;
 using LGAHit = Mustard::Data::Tuple<Musae::Data::LGAHit>;
 using CRMuEvent = Mustard::Data::Tuple<Musae::Data::CRMuEvent>;
