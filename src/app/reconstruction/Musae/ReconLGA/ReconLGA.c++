@@ -16,6 +16,7 @@
 #include "Mustard/Utility/MakeTextTMacro.h++"
 #include "Mustard/Utility/PrettyLog.h++"
 #include "Mustard/Utility/Print.h++"
+#include "Mustard/Utility/ProgressBar.h++"
 
 #include "CLHEP/Units/SystemOfUnits.h"
 
@@ -86,24 +87,22 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
         ->Write();
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 
-    Mustard::Data::SeqProcessor processor;
-
     // digi data summary
 
-    using ChannelIDAndEnergy = Mustard::Data::TupleModel<
-        Mustard::Data::Value<unsigned, "channelID">,
-        Mustard::Data::Value<float, "energy">>;
-
     muc::flat_hash_map<int, ChannelSummary> flatChannelSummary;
-    const auto SummarizeDigi{[&](std::shared_ptr<Mustard::Data::Tuple<ChannelIDAndEnergy>> digi) {
-        auto& ch{flatChannelSummary[Get<"channelID">(*digi)]};
-        ch.channelID = Get<"channelID">(*digi);
-        ch.meanEnergy += Get<"energy">(*digi);
+    Mustard::ProgressBar progressBar;
+    const auto SummarizeDigi{[&](unsigned channelID, float energy) {
+        auto& ch{flatChannelSummary[channelID]};
+        ch.channelID = channelID;
+        ch.meanEnergy += energy;
         ++ch.triggerCount;
+        progressBar.Tick();
     }};
 
     Mustard::PrintLn("Summarizing LGA digi data...");
-    processor.Process<ChannelIDAndEnergy>(data, SummarizeDigi);
+    progressBar.Start(*data.Count());
+    data.Foreach(SummarizeDigi, {"channelID", "energy"});
+    progressBar.Complete();
     for (auto&& [_, ch] : flatChannelSummary) {
         ch.meanEnergy /= ch.triggerCount;
     }
@@ -178,6 +177,8 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     }};
 
     // main reconstruction loop
+
+    Mustard::Data::SeqProcessor processor;
 
     Mustard::PrintLn("Reconstructing events...");
     processor.Process<Musae::Data::LGARawDigi>(data, ProcessDigi);
