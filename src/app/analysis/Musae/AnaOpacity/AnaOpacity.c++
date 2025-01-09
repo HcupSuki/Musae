@@ -44,8 +44,8 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
     cli->add_argument("-j", "--reference-input").help("Reference file path(s).").required().nargs(argparse::nargs_pattern::at_least_one);
     cli->add_argument("-r", "--reference-tree").help("Reference tree name.").default_value("CRMuEvent"s).required().nargs(1);
     cli->add_argument("-h", "--histogram-model").help("Histogram binning model (nPhi, nTheta, thetaMax).").required().nargs(3).scan<'g', double>();
-    cli->add_argument("-p", "--histogram-palette").help("Histogram palette (integer of ROOT palette enum).").default_value(muc::to_underlying(kRainbow)).required().nargs(1).scan<'i', std::underlying_type_t<EColorPalette>>();
-    cli->add_argument("-o", "--output").help("Output file path.").required().nargs(1);
+    cli->add_argument("-p", "--histogram-palette").help("Histogram palette (integer of ROOT palette enum).").default_value(muc::to_underlying(kViridis)).required().nargs(1).scan<'i', std::underlying_type_t<EColorPalette>>();
+    cli->add_argument("-o", "--output").help("Output file path.").nargs(1);
     cli->add_argument("-m", "--output-mode").help("Output file creation mode.").default_value("NEW"s).required().nargs(1);
     Mustard::Env::BasicEnv env{argc, argv, cli};
     TApplication rootApp{argv[0], nullptr, nullptr};
@@ -53,9 +53,12 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
     ROOT::RDataFrame imageData{cli->get("--image-tree"), cli->get<std::vector<std::string>>("--image-input")};
     ROOT::RDataFrame referenceData{cli->get("--reference-tree"), cli->get<std::vector<std::string>>("--reference-input")};
 
-    TFile file{cli->get("--output").c_str(), cli->get("--output-mode").c_str()};
-    if (not file.IsOpen()) {
-        return EXIT_FAILURE;
+    std::unique_ptr<TFile> file;
+    if (const auto filePath{cli->present("--output")}) {
+        file = std::make_unique<TFile>(filePath->c_str(), cli->get("--output-mode").c_str());
+        if (not file->IsOpen()) {
+            return EXIT_FAILURE;
+        }
     }
 
     const auto rawHModel{cli->get<std::vector<double>>("--histogram-model")};
@@ -103,8 +106,10 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
             c.Modified();
             c.Update();
 
-            h.Write();
-            c.Write();
+            if (file) {
+                h.Write();
+                c.Write();
+            }
         }};
 
     TCanvas cImage{"ImageCanvas", "Image", 600, 600};
