@@ -40,6 +40,8 @@ LGA::LGA() : // clang-format off
     fNFiberY{this, 27},
     fLGAThickness{this, 1_cm},
     fRotation{this, [this] { return CalculateRotation(); }},
+    // Material
+    fScintillationTimeConstant1{this, 2.4_ns},
     // Detection
     fEnergyDepositionThreshold{this, 10_keV},
     fTimeResolutionFWHM{this, 1_ns},
@@ -90,33 +92,33 @@ LGA::LGA() : // clang-format off
         {44, {'x', 24}},
         {46, {'x', 25}},
         {39, {'x', 26}},
-        {0,  {'y', 26}},
-        {1,  {'y', 25}},
-        {2,  {'y', 24}},
-        {3,  {'y', 23}},
-        {4,  {'y', 22}},
-        {5,  {'y', 21}},
-        {6,  {'y', 20}},
-        {7,  {'y', 19}},
-        {8,  {'y', 18}},
-        {9,  {'y', 17}},
-        {10, {'y', 16}},
-        {11, {'y', 15}},
-        {12, {'y', 14}},
+        {0,  {'y', 0}},
+        {1,  {'y', 1}},
+        {2,  {'y', 2}},
+        {3,  {'y', 3}},
+        {4,  {'y', 4}},
+        {5,  {'y', 5}},
+        {6,  {'y', 6}},
+        {7,  {'y', 7}},
+        {8,  {'y', 8}},
+        {9,  {'y', 9}},
+        {10, {'y', 10}},
+        {11, {'y', 11}},
+        {12, {'y', 12}},
         {13, {'y', 13}},
-        {14, {'y', 12}},
-        {15, {'y', 11}},
-        {27, {'y', 10}},
-        {38, {'y', 9} },
-        {50, {'y', 8} },
-        {51, {'y', 7} },
-        {52, {'y', 6} },
-        {53, {'y', 5} },
-        {54, {'y', 4} },
-        {59, {'y', 3} },
-        {58, {'y', 2} },
-        {62, {'y', 1} },
-        {61, {'y', 0} }
+        {14, {'y', 14}},
+        {15, {'y', 15}},
+        {27, {'y', 16}},
+        {38, {'y', 17} },
+        {50, {'y', 18} },
+        {51, {'y', 19} },
+        {52, {'y', 20} },
+        {53, {'y', 21} },
+        {54, {'y', 22} },
+        {59, {'y', 23} },
+        {58, {'y', 24} },
+        {62, {'y', 25} },
+        {61, {'y', 26} }
     };
 }
 
@@ -291,6 +293,7 @@ auto LGA::ImportAllValue(const YAML::Node& node) -> void {
     ImportValue(node, fNFiberX, "NFiberX");
     ImportValue(node, fNFiberY, "NFiberY");
     ImportValue(node, fLGAThickness, "LGAThickness");
+    ImportValue(node, fScintillationTimeConstant1, "ScintillationTimeConstant1");
     ImportValue(node, fEnergyDepositionThreshold, "EnergyDepositionThreshold");
     ImportValue(node, fTimeResolutionFWHM, "TimeResolutionFWHM");
     ImportValue(node, fNChannelPerChip, "NChannelPerChip");
@@ -318,6 +321,7 @@ auto LGA::ExportAllValue(YAML::Node& node) const -> void {
     ExportValue(node, fNFiberX, "NFiberX");
     ExportValue(node, fNFiberY, "NFiberY");
     ExportValue(node, fLGAThickness, "LGAThickness");
+    ExportValue(node, fScintillationTimeConstant1, "ScintillationTimeConstant1");
     ExportValue(node, fEnergyDepositionThreshold, "EnergyDepositionThreshold");
     ExportValue(node, fTimeResolutionFWHM, "TimeResolutionFWHM");
     ExportValue(node, fNChannelPerChip, "NChannelPerChip");

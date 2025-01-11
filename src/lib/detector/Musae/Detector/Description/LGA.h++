@@ -62,6 +62,12 @@ public:
     auto FiberX(int fiberLocalID) const -> double;
     auto FiberY(int fiberLocalID) const -> double;
 
+    // Material
+
+    auto ScintillationTimeConstant1() -> auto { return *fScintillationTimeConstant1; }
+
+    auto ScintillationTimeConstant1(double val) -> void { fScintillationTimeConstant1 = val; }
+
     // Detection
 
     auto EnergyDepositionThreshold() const -> auto { return *fEnergyDepositionThreshold; }
@@ -143,6 +149,8 @@ private:
     Simple<int> fNFiberY;
     Simple<double> fLGAThickness;
     Cached<HepGeom::Rotate3D> fRotation;
+    // Material
+    Simple<double> fScintillationTimeConstant1;
     // Detection
     Simple<double> fEnergyDepositionThreshold;
     Simple<double> fTimeResolutionFWHM;
