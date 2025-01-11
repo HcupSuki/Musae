@@ -24,6 +24,16 @@
 
 namespace Musae::ReconLGA {
 
+auto ParseReconstructCRMuMethod(std::string_view method) -> ReconstructCRMuMethod {
+    if (method == "LeastChiSquare") {
+        return ReconstructCRMuMethod::LeastChiSquare;
+    } else if (method == "LeastChiSquareSameWeight") {
+        return ReconstructCRMuMethod::LeastChiSquareSameWeight;
+    } else {
+        Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
+    }
+}
+
 namespace {
 namespace CRMuReconstruction {
 
@@ -94,19 +104,20 @@ auto LeastChiSquare(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_p
 } // namespace CRMuReconstruction
 } // namespace
 
-auto ReconstructCRMu(const muc::unique_ptrvec<LGAHit>& eventHit, std::string_view method) -> std::unique_ptr<CRMuEvent> {
+auto ReconstructCRMu(const muc::unique_ptrvec<LGAHit>& eventHit, ReconstructCRMuMethod method) -> std::unique_ptr<CRMuEvent> {
     const auto eventID{*Get<"EvtID">(*eventHit.front())};
     if (std::ranges::any_of(eventHit, [&](auto&& h) { return Get<"EvtID">(*h) != eventID; })) {
         Mustard::Throw<std::runtime_error>("Event IDs in digi data are not all the same");
     }
 
     std::unique_ptr<CRMuEvent> event;
-    if (method == "LeastChiSquare") {
+    switch (method) {
+    case ReconstructCRMuMethod::LeastChiSquare:
         event = CRMuReconstruction::LeastChiSquare<false>(eventHit);
-    } else if (method == "LeastChiSquareSameWeight") {
+        break;
+    case ReconstructCRMuMethod::LeastChiSquareSameWeight:
         event = CRMuReconstruction::LeastChiSquare<true>(eventHit);
-    } else {
-        Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
+        break;
     }
     if (event == nullptr) {
         return event;

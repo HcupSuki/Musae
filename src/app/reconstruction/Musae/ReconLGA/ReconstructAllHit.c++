@@ -1,12 +1,11 @@
 #include "Musae/Detector/Description/LGA.h++"
 #include "Musae/ReconLGA/ReconstructAllHit.h++"
-#include "Musae/ReconLGA/ReconstructHit.h++"
 
 #include <ranges>
 
 namespace Musae::ReconLGA {
 
-auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& eventDigi, std::string_view method)
+auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& eventDigi, ReconstructHitMethod method)
     -> muc::unique_ptrvec<LGAHit> {
     const auto& lga{Musae::Detector::Description::LGA::Instance()};
 

@@ -11,6 +11,13 @@
 
 namespace Musae::ReconLGA {
 
-auto ReconstructCRMu(const muc::unique_ptrvec<LGAHit>& eventHit, std::string_view method) -> std::unique_ptr<CRMuEvent>;
+enum struct ReconstructCRMuMethod {
+    LeastChiSquare,
+    LeastChiSquareSameWeight
+};
+
+auto ParseReconstructCRMuMethod(std::string_view method) -> ReconstructCRMuMethod;
+
+auto ReconstructCRMu(const muc::unique_ptrvec<LGAHit>& eventHit, ReconstructCRMuMethod method) -> std::unique_ptr<CRMuEvent>;
 
 } // namespace Musae::ReconLGA

@@ -17,6 +17,20 @@
 
 namespace Musae::ReconLGA {
 
+auto ParseReconstructHitMethod(std::string_view method) -> ReconstructHitMethod {
+    if (method == "EnergyWeighted1D") {
+        return ReconstructHitMethod::EnergyWeighted1D;
+    } else if (method == "NormalizedEnergyWeighted1D") {
+        return ReconstructHitMethod::NormalizedEnergyWeighted1D;
+    } else if (method == "EnergyWeighted2D") {
+        return ReconstructHitMethod::EnergyWeighted2D;
+    } else if (method == "NormalizedEnergyWeighted2D") {
+        return ReconstructHitMethod::NormalizedEnergyWeighted2D;
+    } else {
+        Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
+    }
+}
+
 namespace {
 namespace HitReconstruction {
 
@@ -105,7 +119,7 @@ auto NormalizedEnergyWeighted2D(const muc::flat_hash_map<char, std::vector<LGADi
 } // namespace
 
 auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData,
-                    int hitID, std::string_view method) -> std::unique_ptr<LGAHit> {
+                    int hitID, ReconstructHitMethod method) -> std::unique_ptr<LGAHit> {
     const auto& lga{Detector::Description::LGA::Instance()};
     const auto moduleID{*Get<"ModID">(*digiData.at('x').front())};
     for (auto&& [_, digi] : digiData) {
@@ -128,16 +142,19 @@ auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiD
     }
 
     std::unique_ptr<LGAHit> hit;
-    if (method == "EnergyWeighted1D") {
+    switch (method) {
+    case ReconstructHitMethod::EnergyWeighted1D:
         hit = HitReconstruction::EnergyWeighted1D(digiData);
-    } else if (method == "NormalizedEnergyWeighted1D") {
+        break;
+    case ReconstructHitMethod::NormalizedEnergyWeighted1D:
         hit = HitReconstruction::NormalizedEnergyWeighted1D(digiData);
-    } else if (method == "EnergyWeighted2D") {
+        break;
+    case ReconstructHitMethod::EnergyWeighted2D:
         hit = HitReconstruction::EnergyWeighted2D(digiData);
-    } else if (method == "NormalizedEnergyWeighted2D") {
+        break;
+    case ReconstructHitMethod::NormalizedEnergyWeighted2D:
         hit = HitReconstruction::NormalizedEnergyWeighted2D(digiData);
-    } else {
-        Mustard::Throw<std::runtime_error>(fmt::format("No method named '{}'", method));
+        break;
     }
     if (hit == nullptr) {
         return hit;

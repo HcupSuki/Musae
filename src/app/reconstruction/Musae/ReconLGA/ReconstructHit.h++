@@ -12,7 +12,16 @@
 
 namespace Musae::ReconLGA {
 
+enum struct ReconstructHitMethod {
+    EnergyWeighted1D,
+    NormalizedEnergyWeighted1D,
+    EnergyWeighted2D,
+    NormalizedEnergyWeighted2D
+};
+
+auto ParseReconstructHitMethod(std::string_view method) -> ReconstructHitMethod;
+
 auto ReconstructHit(const muc::flat_hash_map<char, std::vector<LGADigi*>>& digiData,
-                    int hitID, std::string_view method) -> std::unique_ptr<LGAHit>;
+                    int hitID, ReconstructHitMethod method) -> std::unique_ptr<LGAHit>;
 
 } // namespace Musae::ReconLGA

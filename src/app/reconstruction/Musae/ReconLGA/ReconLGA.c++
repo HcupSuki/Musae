@@ -63,9 +63,9 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     cli->add_argument("-c", "--lga-description").help("LGA description YAML file path.").nargs(1);
     Mustard::Env::BasicEnv env{argc, argv, cli};
 
-    const auto hitReconstructionMethod{cli->get("--hit-method")};
+    const auto hitReconstructionMethod{ParseReconstructHitMethod(cli->get("--hit-method"))};
     const auto reconstructCRMu{cli["--no-crmu"] == false};
-    const auto cRMuReconstructionMethod{cli->get("--crmu-method")};
+    const auto cRMuReconstructionMethod{ParseReconstructCRMuMethod(cli->get("--crmu-method"))};
 
     ROOT::RDF::RNode data(ROOT::RDataFrame{cli->get("--input-tree"), cli->get<std::vector<std::string>>("input")});
     if (const auto entryRange{cli->present<std::vector<unsigned>>("--input-range")}) {
