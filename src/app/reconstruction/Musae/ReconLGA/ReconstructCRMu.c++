@@ -80,6 +80,14 @@ auto LeastChiSquare(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_p
     const auto x0(lga.Rotation() * HepGeom::Point3D<double>{param[0], param[1], 0});
     const auto d(lga.Rotation() * HepGeom::Vector3D<double>{param[2], param[3], 1});
 
+    const auto mae{[&] {
+        double sae{};
+        for (int i{}; i < nHit; ++i) {
+            sae += deltaX.block<2, 1>(2 * i, 0).norm();
+        }
+        return sae / nHit;
+    }()};
+
     const auto t0{muc::ranges::transform_reduce(
                       eventHit, 0., std::plus{},
                       [](auto&& h) {
@@ -94,6 +102,7 @@ auto LeastChiSquare(const muc::unique_ptrvec<LGAHit>& eventHit) -> std::unique_p
     auto event{std::make_unique_for_overwrite<CRMuEvent>()};
     for (auto&& hit : eventHit) { Get<"HitID">(*event)->emplace_back(Get<"HitID">(*hit)); };
     Get<"chi2">(*event) = chiSquare;
+    Get<"MAE">(*event) = mae;
     Get<"t0">(*event) = t0;
     Get<"x0">(*event) = static_cast<CLHEP::Hep3Vector>(x0);
     Get<"theta">(*event) = d.theta();
