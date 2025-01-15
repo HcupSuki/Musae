@@ -48,18 +48,20 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
     cli->add_argument("-o", "--output").help("Output file path.").nargs(1);
     cli->add_argument("-m", "--output-mode").help("Output file creation mode.").default_value("NEW"s).required().nargs(1);
     Mustard::Env::BasicEnv env{argc, argv, cli};
-    TApplication rootApp{argv[0], nullptr, nullptr};
-
-    ROOT::RDataFrame imageData{cli->get("--image-tree"), cli->get<std::vector<std::string>>("--image-input")};
-    ROOT::RDataFrame referenceData{cli->get("--reference-tree"), cli->get<std::vector<std::string>>("--reference-input")};
 
     std::unique_ptr<TFile> file;
+    std::unique_ptr<TApplication> rootApp;
     if (const auto filePath{cli->present("--output")}) {
         file = std::make_unique<TFile>(filePath->c_str(), cli->get("--output-mode").c_str());
         if (not file->IsOpen()) {
             return EXIT_FAILURE;
         }
+    } else {
+        rootApp = std::make_unique<TApplication>(argv[0], nullptr, nullptr);
     }
+
+    ROOT::RDataFrame imageData{cli->get("--image-tree"), cli->get<std::vector<std::string>>("--image-input")};
+    ROOT::RDataFrame referenceData{cli->get("--reference-tree"), cli->get<std::vector<std::string>>("--reference-input")};
 
     const auto rawHModel{cli->get<std::vector<double>>("--histogram-model")};
     ROOT::RDF::TH2DModel hModel{"h", "",
@@ -130,10 +132,12 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
     hOpacity->Divide(&*hReference);
     DrawHistogram(cOpacity, *hOpacity);
 
-    Mustard::Print("Press enter twice to exit...");
-    std::getchar();
-    Mustard::Print("Press enter again to exit...");
-    std::getchar();
+    if (rootApp) {
+        Mustard::Print("Press enter twice to exit...");
+        std::getchar();
+        Mustard::Print("Press enter again to exit...");
+        std::getchar();
+    }
 
     return EXIT_SUCCESS;
 }
