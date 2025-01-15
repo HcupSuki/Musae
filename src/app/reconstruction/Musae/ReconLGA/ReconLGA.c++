@@ -57,7 +57,7 @@ auto ReconLGA::Main(int argc, char* argv[]) const -> int {
     cli->add_argument("-g", "--output-digi-tree").help("Output digi tree name.").default_value("LGADigi"s).required().nargs(1);
     cli->add_argument("-h", "--output-hit-tree").help("Output hit tree name.").default_value("LGAHit"s).required().nargs(1);
     cli->add_argument("-e", "--output-event-tree").help("Output event tree name.").default_value("CRMuEvent"s).required().nargs(1);
-    cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").default_value("EnergyWeighted1D"s).required().nargs(1);
+    cli->add_argument("-r", "--hit-method").help("Hit reconstruction method.").default_value("SLinTW1D"s).required().nargs(1);
     cli->add_argument("-k", "--no-crmu").help("Skip cosmic-ray muon event reconstruction.").flag();
     cli->add_argument("-u", "--crmu-method").help("Cosmic-ray muon event reconstruction method.").default_value("LeastChiSquare"s).required().nargs(1);
     cli->add_argument("-c", "--lga-description").help("LGA description YAML file path.").nargs(1);
