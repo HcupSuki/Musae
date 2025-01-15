@@ -64,7 +64,7 @@ public:
 
     // Material
 
-    auto ScintillationTimeConstant1() -> auto { return *fScintillationTimeConstant1; }
+    auto ScintillationTimeConstant1() const -> auto { return *fScintillationTimeConstant1; }
 
     auto ScintillationTimeConstant1(double val) -> void { fScintillationTimeConstant1 = val; }
 
