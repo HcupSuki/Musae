@@ -27,14 +27,14 @@ auto FormatChannelSummary(const muc::flat_hash_map<int, ChannelSummary>& flatCha
         summaryText += "  Edge x:\n";
         for (auto fiberLocalID : std::views::iota(0, lga.NFiberX())) {
             const auto& ch{channelSummaryData[moduleID][{'x', fiberLocalID}]};
-            summaryText += fmt::format("    {:32} mean energy: {:0<7.6}, trigger count: {}\n",
+            summaryText += fmt::format("    {:32} mean energy: {:<7.6}, trigger count: {}\n",
                                        fmt::format("SiPM/Fiber {} (channel {}):", fiberLocalID, ch.channelID),
                                        ch.meanEnergy, ch.triggerCount);
         }
         summaryText += "  Edge y:\n";
         for (auto fiberLocalID : std::views::iota(0, lga.NFiberY())) {
             const auto& ch{channelSummaryData[moduleID][{'y', fiberLocalID}]};
-            summaryText += fmt::format("    {:32} mean energy: {:0<7.6}, trigger count: {}\n",
+            summaryText += fmt::format("    {:32} mean energy: {:<7.6}, trigger count: {}\n",
                                        fmt::format("SiPM/Fiber {} (channel {}):", fiberLocalID, ch.channelID),
                                        ch.meanEnergy, ch.triggerCount);
         }
