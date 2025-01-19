@@ -13,19 +13,12 @@
 namespace Musae::ReconLGA {
 
 enum struct ReconstructHitMethod {
-    SLinTW1D,
-    SLinTW2D,
-    EW1D,
-    NEW1D,
-    SLinTEW1D,
-    SLinTNEW1D,
-    SLinTTopW1D,
-    ETopW1D,
-    NETopW1D,
-    SLinTETopW1D,
-    SLinTNETopW1D,
-    SLinTW1DCombEW1D,
-    SLinTW1DCombNEW1D,
+    SLinTW,
+    OLinTW,
+    EW,
+    NEW,
+    SLinTWCombEW,
+    SLinTWCombNEW
 };
 
 auto ParseReconstructHitMethod(std::string_view method) -> ReconstructHitMethod;
