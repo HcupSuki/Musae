@@ -70,7 +70,7 @@ auto VisLGA::Main(int argc, char* argv[]) const -> int {
     Mustard::Data::SeqProcessor processor;
     processor.PrintProgress(false);
     processor.Process<Musae::Data::LGADigi, Musae::Data::LGAHit, Musae::Data::CRMuEvent>(
-        {lgaDigiData, lgaHitData, cRMuEventData}, "EvtID",
+        {lgaDigiData, lgaHitData, cRMuEventData}, int{}, "EvtID",
         [&](const muc::shared_ptrvec<LGADigi>& lgaDigi,
             const muc::shared_ptrvec<LGAHit>& lgaHit,
             const muc::shared_ptrvec<CRMuEvent>& cRMuEvent) {
