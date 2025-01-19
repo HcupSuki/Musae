@@ -18,7 +18,7 @@ SimFlux::SimFlux() :
     Subprogram{"SimFlux", "Simulation of cosmic ray muon flux in underground experiment."} {}
 
 auto SimFlux::Main(int argc, char* argv[]) const -> int {
-    Mustard::Env::CLI::Geant4CLI cli;
+    Mustard::Env::CLI::Geant4CLI<> cli;
     Mustard::Env::MPIEnv env{argc, argv, cli};
 
     Mustard::UseXoshiro<256> random;
