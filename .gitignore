@@ -91,6 +91,8 @@ Mugrid_Dataprocess/src/app/analysis/projection_bk/
 # Mugrid_Reconstract
 # ==============================================================================
 Mugrid_Reconstract/*.ipynb
+!Mugrid_Reconstract/Example2_reconstruct.ipynb
+!Mugrid_Reconstract/Example2_visualize.ipynb
 Mugrid_Reconstract/*.py
 Mugrid_Reconstract/*.log
 Mugrid_Reconstract/*.html
