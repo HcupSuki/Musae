@@ -1,0 +1,23 @@
+#############################################################################
+# Initialization settings
+#############################################################################
+
+/control/verbose 0
+/run/verbose 0
+
+/Mustard/Detector/Description/Import ../scripts/Example2.yaml
+
+/run/initialize
+
+/Musae/Physics/NonMuonProcessActivation no
+/Musae/Physics/PerfectRangeGeneration no
+
+#############################################################################
+# Run
+#############################################################################
+/Mustard/Analysis/FilePath ../data/SimFlux_vis/SimBox_A_2e9_p3_z60_b5_r3_2_1
+#/Mustard/Analysis/FilePath test_simflux
+/Mustard/Analysis/FileMode RECREATE
+/Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/SimBox_A_2e9_p3_z60_b5_r3_2_1/* CRMu
+/run/beamOn 2000000000
+/Mustard/Run/PrintRunSummary

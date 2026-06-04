@@ -1,3 +1,6 @@
+# ==============================================================================
+# Build & IDE artifacts
+# ==============================================================================
 **/.cache/
 **/.ipynb_checkpoints/
 **/.temp/
@@ -16,13 +19,98 @@
 **/*.root
 **/*.so*
 **/*.swp
-**/build/
 **/GPATH
 **/GRTAGS
 **/GTAGS
 **/out/
 **/temp/
 **/tmp/
+**/build/
+
+# ==============================================================================
+# Log & backup files
+# ==============================================================================
+**/*.log
+*~
+.DS_Store
+
+# ==============================================================================
+# Mugrid_Dataprocess: scripts
+# Only keep Example1, Example2, and their direct dependencies.
+# ==============================================================================
+Mugrid_Dataprocess/scripts/*
+!Mugrid_Dataprocess/scripts/Example1.*
+!Mugrid_Dataprocess/scripts/Example2*
+!Mugrid_Dataprocess/scripts/vis.mac
+!Mugrid_Dataprocess/scripts/Material.gdml
+# Allow images used by docs (if any)
+!Mugrid_Dataprocess/scripts/pic/
+Mugrid_Dataprocess/scripts/pic/*
+
+# ==============================================================================
+# Mugrid_Dataprocess: data
+# Only keep STL models and flux tables needed by Example1/Example2.
+# ==============================================================================
+# Ignore everything under data/
+Mugrid_Dataprocess/data/*
+# Allow the Stl_model and Flux_model subdirectories
+!Mugrid_Dataprocess/data/Stl_model/
+!Mugrid_Dataprocess/data/Flux_model/
+
+# Stl_model: only the 6 STL files used by Example1 and Example2
+Mugrid_Dataprocess/data/Stl_model/*
+!Mugrid_Dataprocess/data/Stl_model/ConcreteWallWithCubeHole0p7_Unit_mm.stl
+!Mugrid_Dataprocess/data/Stl_model/ConcreteWall_Unit_mm.stl
+!Mugrid_Dataprocess/data/Stl_model/StellPlate_Unit_mm.stl
+!Mugrid_Dataprocess/data/Stl_model/Tianqin_MCMCTest_12_23_A_Unitmm.stl
+!Mugrid_Dataprocess/data/Stl_model/Tianqin_MCMCTest_12_23_B_Unitmm.stl
+!Mugrid_Dataprocess/data/Stl_model/Tianqin_MCMCTest_12_23_C_Unitmm.stl
+
+# Flux_model: only the 2 CSV files used by Example1 and Example2
+Mugrid_Dataprocess/data/Flux_model/*
+!Mugrid_Dataprocess/data/Flux_model/Survival_to_Ecut_table_pmin0.csv
+!Mugrid_Dataprocess/data/Flux_model/Survival_to_Ecut_table_pmin3.csv
+
+# ==============================================================================
+# Mugrid_Dataprocess: terrain
+# Only keep the 2 CSV files needed by Example2.
+# ==============================================================================
+Mugrid_Dataprocess/terrain/*
+!Mugrid_Dataprocess/terrain/SimBox_Nx2_Ny2.csv
+!Mugrid_Dataprocess/terrain/test_flatdata_Nx2_Ny2.csv
+
+# ==============================================================================
+# Mugrid_Dataprocess: deprecated / non-public directories
+# ==============================================================================
+Mugrid_Dataprocess/small_pro/
+Mugrid_Dataprocess/YT_patch/
+Mugrid_Dataprocess/src/app/analysis/BK/
+Mugrid_Dataprocess/src/app/analysis/projection_bk/
+
+# ==============================================================================
+# Mugrid_Reconstract
+# ==============================================================================
+Mugrid_Reconstract/*.ipynb
+Mugrid_Reconstract/*.py
+Mugrid_Reconstract/*.log
+Mugrid_Reconstract/*.html
+Mugrid_Reconstract/*.png
+Mugrid_Reconstract/*.sh
+Mugrid_Reconstract/cloudpoint/
+Mugrid_Reconstract/muCT/
+Mugrid_Reconstract/output/
+Mugrid_Reconstract/temp_frames/
+Mugrid_Reconstract/temp_frames_terrain/
+
+# input: ignore everything except Terrain/SimBox_Nx2_Ny2.csv
+Mugrid_Reconstract/input/*
+!Mugrid_Reconstract/input/Terrain/
+Mugrid_Reconstract/input/Terrain/*
+!Mugrid_Reconstract/input/Terrain/SimBox_Nx2_Ny2.csv
+
+# ==============================================================================
+# Project-level exclusions
+# ==============================================================================
 CMakeSettings.json
 document/doxygen/html/
 document/doxygen/latex/

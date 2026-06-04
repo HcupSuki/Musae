@@ -1,0 +1,23 @@
+#############################################################################
+# Initialization settings
+#############################################################################
+
+/control/verbose 0
+/run/verbose 0
+
+/Mustard/Detector/Description/Import ../scripts/Example1.yaml
+
+/run/initialize
+
+/Musae/Physics/NonMuonProcessActivation no
+/Musae/Physics/PerfectRangeGeneration no
+
+#############################################################################
+# Run
+#############################################################################
+/Mustard/Analysis/FilePath ../data/SimFlux_vis/ConcreteWall_test
+#/Mustard/Analysis/FilePath test_simflux
+/Mustard/Analysis/FileMode RECREATE
+/Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/ConcreteWall_test/* CRMu
+/run/beamOn 1000000000
+/Mustard/Run/PrintRunSummary

@@ -1,0 +1,3 @@
+LGA:
+    NHitThreshold: 1
+    NLuminousDigiThresholdPerDirection: 3

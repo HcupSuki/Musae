@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+
+<materials>
+
+    <!-- Define elements -->
+    <element name="H" formula="H" Z="1">
+      <atom value="1.01" />
+    </element>
+    
+    <element name="O" formula="O" Z="8">
+      <atom value="16.0" />
+    </element>
+    
+    <element name="N" formula="N" Z="7">
+      <atom value="14.01" />
+    </element>
+
+    <element name="C" formula="C" Z="6">
+      <atom value="12.01" />
+    </element>
+
+    <element name="Si" formula="Si" Z="14">
+      <atom value="28.09" />
+    </element>
+
+    <element name="Rk" formula="Rk" Z="11">
+      <atom value="22" />
+    </element>
+
+    <element name="Fe" formula="Fe" Z="26">
+      <atom value="55.845" />
+    </element>
+    
+    <element name="Cu" formula="Cu" Z="29">
+      <atom value="63.546" />
+    </element>
+
+    <element name="Al" formula="Al" Z="13">
+      <atom value="26.98" />
+    </element>
+
+    <element name="Ca" formula="Ca" Z="20">
+      <atom value="40.08" />
+    </element>
+
+    <element name="K" formula="K" Z="19">
+      <atom value="39.098" />
+    </element>
+
+    <element name="Na" formula="Na" Z="11">
+      <atom value="22.989769" />
+    </element>
+
+    <element name="Mg" formula="Mg" Z="12">
+      <atom value="24.305" />
+    </element>
+
+    <!-- Define materials -->
+    <!-- Water -->
+    <material name="Water" state="liquid" formula="H2O">
+      <D value="1.0" unit="g/cm3" />
+      <composite n="2" ref="H" />
+      <composite n="1" ref="O" />
+    </material>
+
+    <!-- Air -->
+    <material name="Air" state="gas">
+      <D value="0.001205" unit="g/cm3" />
+      <fraction n="0.7" ref="N" />
+      <fraction n="0.3" ref="O" />
+    </material>
+
+    <!-- Concrete -->
+    <material name="Concrete" state="solid">
+      <D value="2.3" unit="g/cm3" />
+      <fraction n="0.465" ref="O" />
+      <fraction n="0.225" ref="Si" />
+      <fraction n="0.175" ref="Ca" />
+      <fraction n="0.04" ref="Al" />
+      <fraction n="0.07" ref="Fe" />
+      <fraction n="0.025" ref="C" />
+    </material>
+
+    <!-- Low-carbon steel -->
+    <material name="LowCarbonSteel" state="solid">
+      <D value="7.8" unit="g/cm3" />
+      <fraction n="0.985" ref="Fe" />
+      <fraction n="0.008" ref="C" />
+      <fraction n="0.005" ref="Mn" />
+      <fraction n="0.0015" ref="Si" />
+      <fraction n="0.0005" ref="P" />
+    </material>
+
+    <!-- Granite -->
+    <material name="Granite" state="solid">
+      <D value="2.6" unit="g/cm3" />
+      <fraction n="0.33678" ref="Si" />
+      <fraction n="0.48645937" ref="O" />
+      <fraction n="0.076314" ref="Al" />
+      <fraction n="0.0342018" ref="K" />
+      <fraction n="0.02737" ref="Na" />
+      <fraction n="0.013" ref="Ca" />
+      <fraction n="0.02159" ref="Fe" />
+      <fraction n="0.0042815" ref="Mg" />
+    </material> 
+
+    <!-- Chalcopyrite -->
+    <material name="Chalcopyrite" state="solid">
+      <D value="4.2" unit="g/cm3" />
+      <fraction n="0.3456" ref="Cu" />
+      <fraction n="0.3051" ref="Fe" />
+      <fraction n="0.3493" ref="Si" />
+    </material>
+
+    <!-- Pure lead -->
+    <material name="Pb" state="solid">
+      <D value="11.34" unit="g/cm3" />
+      <fraction n="1" ref="Pb" />
+    </material>
+
+    <!-- Standard rock -->
+    <material name="StandardRock" state="solid">
+      <D value="2.65" unit="g/cm3" />
+      <fraction n="1" ref="Rk" />
+    </material>
+
+</materials>
+
+
+</gdml>

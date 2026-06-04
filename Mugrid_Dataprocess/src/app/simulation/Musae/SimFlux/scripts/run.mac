@@ -1,0 +1,22 @@
+#############################################################################
+# Initialization settings
+#############################################################################
+
+/control/verbose 0
+/run/verbose 0
+
+/Mustard/Detector/Description/Import scripts/SimFlux.yaml
+
+/run/initialize
+
+/Musae/Physics/NonMuonProcessActivation no
+
+#############################################################################
+# Run
+#############################################################################
+
+/Mustard/Analysis/FilePath ../data/SimFlux_vis/SimFlux_Tianqin_C_1e7
+/Mustard/Analysis/FileMode RECREATE
+/Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/Tianqin_C_p30_z60_r3_1e8_day511/* CRMu
+/run/beamOn 10000000
+/Mustard/Run/PrintRunSummary

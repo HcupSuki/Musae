@@ -1,0 +1,57 @@
+# SimFlux: geometry description
+# Unit mm
+Hierarchy:
+  Terrain: World
+  Model: Terrain
+  LGA: Terrain
+
+LGA:
+  Position:
+  - [-242500, 133500, -51513.846]
+  EulerAngleAlpha: [0]
+  EulerAngleBeta: [0]
+  EulerAngleGamma: [0]
+  NModule: 3
+  ModuleSpacing: 140
+  ScintillatorWidthX: 300
+  ScintillatorWidthY: 300
+  ScintillatorThickness: 10
+  UseFastLGA: true
+  LGACellWidth: 11
+  NFiberX: 27
+  NFiberY: 27
+  LGAThickness: 10
+  EnergyDepositionThreshold: 0.001
+  TimeResolutionFWHM: 1
+  LuminousDigiEnergyThreshold: 0.
+  NHitThreshold: 3
+
+Terrain:
+  CsvLoad: true
+  CsvNx: 2
+  CsvNy: 2
+  ElevationDataPath: ../terrain/SimBox_Nx2_Ny2.csv
+  MinZ: -100000
+  Material: Granite
+
+World:
+  HalfXExtent: 100000000
+  HalfYExtent: 100000000
+  HalfZExtent: 100000000
+
+Model: 
+  Position:
+    - 0
+    - 0
+    - 0 # When all zero, use model default coordinates
+  Path: # The model containing the LGA detector must be listed first
+    - ../data/Stl_model/Tianqin_MCMCTest_12_23_A_Unitmm.stl
+    - ../data/Stl_model/Tianqin_MCMCTest_12_23_B_Unitmm.stl
+    - ../data/Stl_model/Tianqin_MCMCTest_12_23_C_Unitmm.stl
+  Material:
+    - Chalcopyrite
+    - G4_AIR
+    - Pb
+
+Material:
+  Path: ../scripts/Material.gdml

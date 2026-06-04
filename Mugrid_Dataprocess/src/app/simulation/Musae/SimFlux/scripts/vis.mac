@@ -1,0 +1,88 @@
+#############################################################################
+# Initialization settings
+#############################################################################
+
+/control/verbose 2
+/control/saveHistory
+/run/verbose 2
+
+/Mustard/Detector/Description/Import scripts/SimFlux.yaml
+
+/run/initialize
+
+/Musae/Physics/NonMuonProcessActivation no
+
+/Mustard/Analysis/FilePath ../data/SimFlux_vis/SimFlux_test
+/Mustard/Analysis/FileMode RECREATE
+
+/Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/Tianqin_C_p30_z60_r3_1e8_day511/* CRMu
+
+
+
+#############################################################################
+# Visualization settings
+#############################################################################
+
+/vis/open OGL
+
+/vis/viewer/set/autoRefresh no
+/vis/verbose errors
+
+/vis/drawVolume
+
+/vis/viewer/set/upVector 0 0 1
+/vis/viewer/set/viewpointVector 0 -1 0.01
+#/vis/viewer/set/rotationStyle freeRotation
+/vis/viewer/set/projection p
+/vis/viewer/set/style s
+#/vis/viewer/set/style w
+#/vis/viewer/set/hiddenEdge yes
+/vis/viewer/set/auxiliaryEdge no
+#/vis/viewer/set/lineSegmentsPerCircle 100
+#/vis/viewer/zoom 50
+
+/vis/geometry/set/visibility World 0 no
+
+# Colors
+/vis/geometry/set/colour Terrain          0     1     1     1     0.5
+/vis/geometry/set/colour LGA              0     0     1     0     1
+/vis/geometry/set/colour LGAScintillator  0     0     1     1     1
+
+/vis/scene/add/date
+/vis/scene/add/axes 0 0 0 100 m
+/vis/scene/add/trajectories smooth #rich
+/vis/scene/add/hits
+
+/vis/filtering/trajectories/create/particleFilter
+/vis/filtering/trajectories/particleFilter-0/add nu_e
+/vis/filtering/trajectories/particleFilter-0/add nu_mu
+/vis/filtering/trajectories/particleFilter-0/add nu_tau
+/vis/filtering/trajectories/particleFilter-0/add anti_nu_e
+/vis/filtering/trajectories/particleFilter-0/add anti_nu_mu
+/vis/filtering/trajectories/particleFilter-0/add anti_nu_tau
+/vis/filtering/trajectories/particleFilter-0/invert yes
+
+/vis/modeling/trajectories/create/drawByCharge
+/vis/modeling/trajectories/drawByCharge-0/default/setDrawAuxPts no
+/vis/modeling/trajectories/drawByCharge-0/default/setAuxPtsSize 1
+/vis/modeling/trajectories/drawByCharge-0/default/setAuxPtsSizeType screen
+/vis/modeling/trajectories/drawByCharge-0/default/setAuxPtsType dots
+/vis/modeling/trajectories/drawByCharge-0/default/setDrawLine yes
+/vis/modeling/trajectories/drawByCharge-0/default/setLineWidth 3
+/vis/modeling/trajectories/drawByCharge-0/default/setDrawStepPts yes
+/vis/modeling/trajectories/drawByCharge-0/default/setStepPtsSize 1
+/vis/modeling/trajectories/drawByCharge-0/default/setStepPtsSizeType screen
+/vis/modeling/trajectories/drawByCharge-0/default/setStepPtsType dots
+
+/vis/scene/endOfEventAction accumulate
+
+/vis/verbose warnings
+/vis/viewer/set/autoRefresh yes
+/vis/viewer/set/rotationStyle freeRotation
+
+#/vis/scene/add/arrow -171450.00000004657 135790.0000002794 -54628.846 -171450.00000004657 135790.0000002794 -34628.846 mm
+/vis/scene/add/text -171450.00000004657 135790.0000002794 -54628.846 mm 24 0 0 "A"
+#/vis/scene/add/arrow -200730.00000004657 95870.0000002794 -54418.846 -200730.00000004657 95870.0000002794 -34418.846 mm
+/vis/scene/add/text -200730.00000004657 95870.0000002794 -54418.846 mm 24 0 0 "B"
+#/vis/scene/add/arrow -246080.00000004657 117350.00000027941 -54278.846 -246080.00000004657 117350.00000027941 -34278.846 mm
+/vis/scene/add/text -246080.00000004657 117350.00000027941 -54278.846 mm 24 0 0 "C"

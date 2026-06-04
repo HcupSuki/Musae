@@ -1,0 +1,44 @@
+# SimFlux: geometry description
+# Unit mm
+Hierarchy: ## Scene hierarchy in Daughter:Mother format. Model = all imported STL models, LGA = detector, Terrain = terrain model (not used here), World = world volume.
+  Model: World
+  LGA: World
+
+LGA: ## LGA detector parameters. Position = detector position(s), EulerAngleAlpha/Beta/Gamma = rotation angles around Z/Y/Z (radians), NModule = number of modules, ModuleSpacing = module spacing, ScintillatorWidthX/Y/Thickness = scintillator dimensions, LGACellWidth = cell size, NFiberX/Y = number of fibers per module, LGAThickness = detector thickness, EnergyDepositionThreshold = energy deposition threshold, TimeResolutionFWHM = time resolution (ns), LuminousDigiEnergyThreshold = luminous digitization energy threshold, NHitThreshold = minimum hit count.
+  Position:
+    - [0, 0, 0]
+  EulerAngleAlpha: [0, 0]
+  EulerAngleBeta: [0.7854]
+  EulerAngleGamma: [0, 0]
+  NModule: 3
+  ModuleSpacing: 140
+  ScintillatorWidthX: 600
+  ScintillatorWidthY: 600
+  ScintillatorThickness: 10
+  UseFastLGA: true
+  LGACellWidth: 11
+  NFiberX: 53
+  NFiberY: 53
+  LGAThickness: 10
+  EnergyDepositionThreshold: 0.001
+  TimeResolutionFWHM: 1
+  LuminousDigiEnergyThreshold: 0.
+  NHitThreshold: 3
+
+World: ## World volume parameters.
+  HalfXExtent: 1000000
+  HalfYExtent: 1000000
+  HalfZExtent: 1000000
+
+Model: ## Imported models. Position = origin for all models, Path = list of STL model file paths, Material = list of material names (one-to-one with Path).
+  Position: [0, 0, 0]
+  Path:
+    - ../data/Stl_model/ConcreteWallWithCubeHole0p7_Unit_mm.stl  # Wall with cavity
+    # - ../data/Stl_model/ConcreteWall_Unit_mm.stl               # Wall without cavity (uncomment for hole-free scenario)
+    - ../data/Stl_model/StellPlate_Unit_mm.stl
+  Material:
+    - Concrete
+    - LowCarbonSteel
+
+Material: ## Material definitions file.
+  Path: ../scripts/Material.gdml

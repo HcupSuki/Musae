@@ -1,4 +1,0 @@
-add_subdirectory(data)
-add_subdirectory(detector)
-add_subdirectory(reconstruction)
-add_subdirectory(simulation)
