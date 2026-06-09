@@ -1,11 +1,11 @@
-# MuCT Project — User Manual
+# Musae — User Manual
 
 ## 1. Build & Runtime Environment
 
 ### 1.1 Dependencies
 
-**MuSAE (Mugrid_Dataprocess):**
-- C++20 compiler (GCC ≥ 11 or Clang ≥ 14)
+**Musae-main:**
+- C++20 compiler with `<format>` support — **GCC ≥ 13** or **Clang ≥ 17**
 - CMake ≥ 3.21
 - [Mustard](https://github.com/somewho/Mustard) — Geant4-based simulation framework (built-in or system-installed)
 - [turtle](https://github.com/somewho/turtle) — STL/Tesselated geometry support
@@ -13,23 +13,48 @@
 - ROOT (with `HistPainter` and `Minuit2`)
 - OpenMPI (for parallel execution of GenCRMu and SimFlux)
 
-**Mugrid_Reconstract (Python notebooks):**
+**MuCT (Python notebooks):**
 - Python ≥ 3.9
-- See `Mugrid_Reconstract/requirements_muCT.txt` for the full package list
+- See `MuCT/requirements_muCT.txt` for the full package list
 - Key packages: numpy, scipy, pandas, numba, matplotlib, trimesh, plotly, pyvista, laspy, kaleido, imageio, jupyter
 
-### 1.2 Build Instructions
+### 1.2 Installing a C++20 Compiler
+
+This project requires GCC ≥ 13 or Clang ≥ 17 for `<format>` support. Older versions (e.g., GCC 11–12) set C++20 but lack this header and will fail with `fatal error: format: No such file or directory`.
+
+**Ubuntu 22.04 / Debian 12:**
+```bash
+sudo apt update
+sudo apt install gcc-13 g++-13
+export CC=gcc-13 CXX=g++-13
+```
+
+**Ubuntu 24.04+ / Debian 13+:**
+The default `g++` (≥ 13) works directly — no extra setup needed.
+
+Verify after installation:
+```bash
+g++ --version   # should show 13.x or newer
+```
+
+If using Clang instead:
+```bash
+sudo apt install clang-17 libc++-17-dev libc++abi-17-dev
+export CC=clang-17 CXX=clang++-17
+```
+
+### 1.3 Build Instructions
 
 ```bash
-cd Mugrid_Dataprocess
+cd Musae-main
 mkdir -p build && cd build
 cmake .. -DMUSAE_BUILTIN_MUSTARD=ON   # or set MUSTARD path appropriately
 make -j$(nproc)
 ```
 
-The built executable `Musae` will be located in `Mugrid_Dataprocess/build/`.
+The built executable `Musae` will be located in `Musae-main/build/`.
 
-### 1.3 Runtime Prerequisites
+### 1.4 Runtime Prerequisites
 
 - All shell scripts in `scripts/` are designed to be run from the `build/` directory.
 - **Important:** `Example1.md` and `Example2.md` are **reference guides**, not executable scripts. Open them in any markdown viewer (or `cat`) and copy/run each command individually. SimFlux (Step 2 in both examples) requires manual YAML editing between scenarios and cannot be fully automated.
@@ -38,7 +63,7 @@ The built executable `Musae` will be located in `Mugrid_Dataprocess/build/`.
 
 ---
 
-## 2. Mugrid_Dataprocess — MuSAE Toolset Overview
+## 2. Musae-main — MuSAE Toolset Overview
 
 MuSAE (Muon Simulation and Analysis Engine) is the core C++/Geant4-based toolkit for cosmic-ray muon simulation and data analysis.
 
@@ -48,7 +73,7 @@ MuSAE (Muon Simulation and Analysis Engine) is the core C++/Geant4-based toolkit
 | **VisLGA** | Visualize and inspect real experimental LGA data |
 | **GenCRMu** | Generate cosmic-ray muon events via EcoMug and store as ROOT files |
 | **SimFlux** | Simulate muon transport through a user-defined geometry (described in YAML), producing simulated detector data |
-| **AnaOpacity** | Analyze data from ReconLGA or SimFlux; compute survival fractions (opacity) binned by azimuth/zenith angle, and muon minimum-energy vs. mass-thickness distributions; output CSV for Mugrid_Reconstract |
+| **AnaOpacity** | Analyze data from ReconLGA or SimFlux; compute survival fractions (opacity) binned by azimuth/zenith angle, and muon minimum-energy vs. mass-thickness distributions; output CSV for MuCT |
 | **Projection** | Back-project muons onto a 2D plane and compute standardized residuals; suitable for small-scale scenarios where detector volume is not negligible relative to the density anomaly |
 
 ### 2.1 Common Command-line Patterns
@@ -63,7 +88,7 @@ All subprograms support `--help` for detailed options:
 
 ---
 
-## 3. Mugrid_Reconstract — 3D Density Reconstruction & Visualization
+## 3. MuCT — 3D Density Reconstruction & Visualization
 
 The Python-based reconstruction module performs 3D density inversion from muon opacity data.
 
@@ -76,8 +101,8 @@ The Python-based reconstruction module performs 3D density inversion from muon o
 
 ### 3.2 Input Data
 
-- Terrain elevation CSV placed in `Mugrid_Reconstract/input/Terrain/`
-- Opacity CSV output from AnaOpacity placed in `Mugrid_Dataprocess/data/Csv_output/`
+- Terrain elevation CSV placed in `MuCT/input/Terrain/`
+- Opacity CSV output from AnaOpacity placed in `Musae-main/data/Csv_output/`
 
 ---
 
@@ -182,9 +207,9 @@ When transforming detector-local coordinates to the world coordinate system:
 
 This example demonstrates muon tomography for 3D density reconstruction. Five MuGrid-v2 detectors (three-layer plastic scintillators, 30×30 cm² cross-section, 89° acceptance cone) are placed inside a 300×300×90 m³ world box filled with rock (2.6 g/cm³). Three 25×25×25 m³ density-anomaly boxes — chalcopyrite (4.2 g/cm³, red), air (1.2×10⁻³ g/cm³, blue), and lead (11.34 g/cm³, green) — are placed 50 m above the detectors, separated by 20 m from each other.
 
-![SimBox Scene](Mugrid_Dataprocess/scripts/pic/SimBox_M-H_Scene_1_process_v2.png)
+![SimBox Scene](Musae-main/scripts/pic/SimBox_M-H_Scene_1_process_v2.png)
 
-**Workflow:** GenCRMu (×6) → SimFlux (×6) → AnaOpacity (×5) → Mugrid_Reconstract
+**Workflow:** GenCRMu (×6) → SimFlux (×6) → AnaOpacity (×5) → MuCT
 
 ### 5.1 Measurement Geometry
 
@@ -284,26 +309,26 @@ Compare each position's data against the open-sky reference:
 
 Repeat for positions B–E, adjusting file names accordingly.
 
-#### Step 4: 3D Density Reconstruction (Mugrid_Reconstract)
+#### Step 4: 3D Density Reconstruction (MuCT)
 
 After generating all five position CSVs from AnaOpacity, prepare the input data:
 
 **Option A — Copy CSV files (recommended):**
 ```bash
-# From Mugrid_Dataprocess/build/, copy the CSVs into Mugrid_Reconstract:
-cp ../data/Csv_output/SimBox/SimBox_A_2e9_p3_z60_b5_r3_2_13.csv ../../Mugrid_Reconstract/input/
-cp ../data/Csv_output/SimBox/SimBox_B_2e9_p3_z60_b5_r3_2_16.csv ../../Mugrid_Reconstract/input/
-cp ../data/Csv_output/SimBox/SimBox_C_2e9_p3_z60_b5_r3_2_21.csv ../../Mugrid_Reconstract/input/
-cp ../data/Csv_output/SimBox/SimBox_D_2e9_p3_z60_b5_r3_2_21.csv ../../Mugrid_Reconstract/input/
-cp ../data/Csv_output/SimBox/SimBox_E_2e9_p3_z60_b5_r3_2_21.csv ../../Mugrid_Reconstract/input/
+# From Musae-main/build/, copy the CSVs into MuCT:
+cp ../data/Csv_output/SimBox/SimBox_A_2e9_p3_z60_b5_r3_2_13.csv ../../MuCT/input/
+cp ../data/Csv_output/SimBox/SimBox_B_2e9_p3_z60_b5_r3_2_16.csv ../../MuCT/input/
+cp ../data/Csv_output/SimBox/SimBox_C_2e9_p3_z60_b5_r3_2_21.csv ../../MuCT/input/
+cp ../data/Csv_output/SimBox/SimBox_D_2e9_p3_z60_b5_r3_2_21.csv ../../MuCT/input/
+cp ../data/Csv_output/SimBox/SimBox_E_2e9_p3_z60_b5_r3_2_21.csv ../../MuCT/input/
 ```
 
 **Option B — Update notebook paths directly:**
-In `Example2_reconstruct.ipynb`, modify the `MEASUREMENT_DATA` list to point to the CSV files in `Mugrid_Dataprocess/data/Csv_output/SimBox/`.
+In `Example2_reconstruct.ipynb`, modify the `MEASUREMENT_DATA` list to point to the CSV files in `Musae-main/data/Csv_output/SimBox/`.
 
 Then proceed with reconstruction:
 
-1. Open `Mugrid_Reconstract/Example2_reconstruct.ipynb` in Jupyter.
+1. Open `MuCT/Example2_reconstruct.ipynb` in Jupyter.
 2. Set the measurement locations and grid parameters in Cell 2.
 3. Ensure the terrain CSV `input/Terrain/SimBox_Nx2_Ny2.csv` is present.
 4. Run all cells. The notebook:
@@ -314,7 +339,7 @@ Then proceed with reconstruction:
 
 #### Step 5: Visualization
 
-1. Open `Mugrid_Reconstract/Example2_visualize.ipynb`.
+1. Open `MuCT/Example2_visualize.ipynb`.
 2. Update `file_path` in Cell 3 to point to the reconstruction output.
 3. Run all cells to generate interactive 3D plots of the density field.
 
