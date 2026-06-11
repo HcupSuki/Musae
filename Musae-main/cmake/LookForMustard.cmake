@@ -1,6 +1,6 @@
 message(STATUS "Looking for Mustard")
 
-set(MUSAE_MUSTARD_MINIMUM_REQUIRED 0.8.0)
+set(MUSAE_MUSTARD_MINIMUM_REQUIRED 0.25.114)
 
 if(NOT MUSAE_BUILTIN_MUSTARD)
     find_package(Mustard ${MUSAE_MUSTARD_MINIMUM_REQUIRED})
@@ -17,19 +17,36 @@ if(MUSAE_BUILTIN_MUSTARD)
         message(NOTICE "***Notice: Provided MUSAE_BUILTIN_MUSTARD_VERSION is ${MUSAE_BUILTIN_MUSTARD_VERSION}, which is less than the requirement (${MUSAE_MUSTARD_MINIMUM_REQUIRED}). Changing to ${MUSAE_MUSTARD_MINIMUM_REQUIRED}")
         set(MUSAE_BUILTIN_MUSTARD_VERSION ${MUSAE_MUSTARD_MINIMUM_REQUIRED})
     endif()
-    # set download dest and URL
-    set(MUSAE_BUILTIN_MUSTARD_SRC_DIR "${MUSAE_PROJECT_3RDPARTY_DIR}/Mustard-main")
-    set(MUSAE_BUILTIN_MUSTARD_URL "https://github.com/zhao-shihan/Mustard/archive/refs/heads/main.zip")
-    # reuse or download
+    # set source directory and bundled tarball path
+    set(MUSAE_BUILTIN_MUSTARD_SRC_DIR "${MUSAE_PROJECT_3RDPARTY_DIR}/Mustard-${MUSAE_BUILTIN_MUSTARD_VERSION}")
+    set(MUSAE_BUILTIN_MUSTARD_ARCHIVE "${CMAKE_CURRENT_LIST_DIR}/mustard-${MUSAE_BUILTIN_MUSTARD_VERSION}-server.tar.gz")
+    # reuse or extract from bundled archive
     include(FetchContent)
     if(EXISTS "${MUSAE_BUILTIN_MUSTARD_SRC_DIR}/CMakeLists.txt")
         FetchContent_Declare(Mustard SOURCE_DIR "${MUSAE_BUILTIN_MUSTARD_SRC_DIR}")
         message(STATUS "Reusing Mustard source ${MUSAE_BUILTIN_MUSTARD_SRC_DIR}")
     else()
-        FetchContent_Declare(Mustard SOURCE_DIR "${MUSAE_BUILTIN_MUSTARD_SRC_DIR}"
-                                     URL "${MUSAE_BUILTIN_MUSTARD_URL}")
-        message(STATUS "Mustard will be downloaded from ${MUSAE_BUILTIN_MUSTARD_URL} to ${MUSAE_BUILTIN_MUSTARD_SRC_DIR}")
+        message(STATUS "Extracting bundled Mustard ${MUSAE_BUILTIN_MUSTARD_VERSION}...")
+        file(MAKE_DIRECTORY "${MUSAE_PROJECT_3RDPARTY_DIR}")
+        file(ARCHIVE_EXTRACT INPUT "${MUSAE_BUILTIN_MUSTARD_ARCHIVE}"
+             DESTINATION "${MUSAE_PROJECT_3RDPARTY_DIR}")
+        FetchContent_Declare(Mustard SOURCE_DIR "${MUSAE_BUILTIN_MUSTARD_SRC_DIR}")
+        message(STATUS "Mustard extracted to ${MUSAE_BUILTIN_MUSTARD_SRC_DIR}")
     endif()
+    # Fix yaml-cpp 0.8.0 for GCC >=13: missing <cstdint> includes (idempotent)
+    foreach(_f IN ITEMS emitterutils stream)
+        set(_yf "${MUSAE_BUILTIN_MUSTARD_SRC_DIR}/thirdparty/yaml-cpp-0.8.0/src/${_f}.cpp")
+        if(EXISTS "${_yf}")
+            file(READ "${_yf}" _content)
+            if(NOT _content MATCHES "#include <cstdint>")
+                string(REPLACE "#include <algorithm>\n" "#include <algorithm>\n#include <cstdint>\n"
+                       _content "${_content}")
+                string(REPLACE "#include <iostream>\n" "#include <cstdint>\n#include <iostream>\n"
+                       _content "${_content}")
+                file(WRITE "${_yf}" "${_content}")
+            endif()
+        endif()
+    endforeach()
     # set options
     set(MUSTARD_ENABLE_ASAN_IN_DEBUG_BUILD ${MUSAE_ENABLE_ASAN_IN_DEBUG_BUILD} CACHE INTERNAL "")
     set(MUSTARD_ENABLE_IPO ${MUSAE_ENABLE_IPO} CACHE INTERNAL "")
@@ -38,14 +55,14 @@ if(MUSAE_BUILTIN_MUSTARD)
     set(MUSTARD_SHOW_EVEN_MORE_COMPILER_WARNINGS ${MUSAE_SHOW_EVEN_MORE_COMPILER_WARNINGS} CACHE INTERNAL "")
     set(MUSTARD_USE_SHARED_MSVC_RT ${MUSAE_USE_SHARED_MSVC_RT} CACHE INTERNAL "")
     # configure it
-    message(STATUS "Downloading (if required) and configuring Mustard (version: ${MUSAE_BUILTIN_MUSTARD_VERSION})")
+    message(STATUS "Configuring Mustard...")
     FetchContent_MakeAvailable(Mustard)
-    message(STATUS "Downloading (if required) and configuring Mustard (version: ${MUSAE_BUILTIN_MUSTARD_VERSION}) - done")
-    # check download
+    message(STATUS "Configuring Mustard - done")
+    # check result
     if(NOT EXISTS "${MUSAE_BUILTIN_MUSTARD_SRC_DIR}/CMakeLists.txt")
         file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/_deps/mustard-build")
         file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/_deps/mustard-subbuild")
-        message(FATAL_ERROR "It seems that the download of Mustard has failed. You can try running cmake again, or manually download Mustard from ${MUSAE_BUILTIN_MUSTARD_URL} and extract it to ${MUSAE_PROJECT_3RDPARTY_DIR} (and keep the directory structure). If the error persists, you can try cleaning the build tree and restarting the build.")
+        message(FATAL_ERROR "Failed to extract Mustard. Please check that ${MUSAE_BUILTIN_MUSTARD_ARCHIVE} exists and is a valid .tar.gz file.")
     endif()
 endif()
 

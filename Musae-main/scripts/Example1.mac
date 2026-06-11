@@ -15,9 +15,9 @@
 #############################################################################
 # Run
 #############################################################################
-/Mustard/Analysis/FilePath ../data/SimFlux_vis/ConcreteWall_test
+/Mustard/Analysis/FilePath ../data/SimFlux_vis/ConcreteWall_test_noHole
 #/Mustard/Analysis/FilePath test_simflux
 /Mustard/Analysis/FileMode RECREATE
 /Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/ConcreteWall_test/* CRMu
-/run/beamOn 1000000000
+/run/beamOn 10000000
 /Mustard/Run/PrintRunSummary

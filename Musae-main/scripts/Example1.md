@@ -12,6 +12,8 @@ Generate 1×10⁹ CRMu events on a hemisphere (radius 3 m, height 300 m).
 | `-z` | `60` | Maximum zenith angle 60° |
 
 ```bash
+mkdir -p ../data/GenCRMu
+mkdir -p ../data/SimFlux_vis
 mpirun ./Musae GenCRMu 1000000000 -h 300 -t 0 0 0 -r 3 -p 0 -z 60 \
     -o ../data/GenCRMu/ConcreteWall_test.root -m RECREATE
 ```
@@ -32,7 +34,10 @@ The macro file (`Example1.mac`) uses three key Geant4 UI commands:
 
 **Optional pre-check** — visualize geometry before the full run:
 ```bash
-./Musae SimFlux -i ../scripts/vis.mac
+1. Edit `../scripts/vis.mac`:
+   - Set `/Mustard/Analysis/FilePath` to `../data/SimFlux_vis/ConcreteWall_test`
+   - Set `/Mustard/Generator/FromDataPrimaryGenerator/EventData` to `../data/GenCRMu/ConcreteWall_test/* CRMu`
+2. ./Musae SimFlux -i ../scripts/vis.mac
 # In the visualization window: /run/beamOn 1000
 # Close the window afterwards.
 ```
@@ -44,6 +49,7 @@ The macro file (`Example1.mac`) uses three key Geant4 UI commands:
    - **Comment out** `ConcreteWall_Unit_mm.stl`
 2. Edit `../scripts/Example1.mac`:
    - Set `/Mustard/Analysis/FilePath` to `../data/SimFlux_vis/ConcreteWall_test`
+   - Set `/Mustard/Generator/FromDataPrimaryGenerator/EventData` to `../data/GenCRMu/ConcreteWall_test/* CRMu`
 3. Run:
    ```bash
    mpirun ./Musae SimFlux ../scripts/Example1.mac
@@ -74,6 +80,7 @@ The macro file (`Example1.mac`) uses three key Geant4 UI commands:
 | `-f` | Survival-to-energy-range lookup table |
 
 ```bash
+mkdir -p ../data/Recon_output/ConcreteWall ../data/Csv_output/ConcreteWall ../data/Flux_model
 ./Musae AnaOpacity \
     -i ../data/SimFlux_vis/ConcreteWall_test/*.root \
     -j ../data/SimFlux_vis/ConcreteWall_test_noHole/*.root \

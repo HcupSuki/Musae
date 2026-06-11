@@ -35,6 +35,8 @@ Five detector positions (A–E) plus one open-sky reference at origin:
 2×10⁹ events per position. Biased momentum-zenith spectrum: `exp(−5/p) · exp(−(θ/45)²)`. Minimum muon momentum 3 GeV/c, max zenith 60°.
 
 ```bash
+mkdir -p ../data/GenCRMu
+
 # Position A
 mpirun ./Musae GenCRMu 2000000000 -h 300 -t -242.5 133.5 -51.513846 -r 3 \
     -b 'exp(-5/p[GeV/c]-(t[deg]/45)^2)' -p 3 -z 60 \
@@ -116,6 +118,8 @@ Repeat for all 6 configurations.
 Compare each position against the open-sky reference.
 
 ```bash
+mkdir -p ../data/Recon_output/SimBox ../data/Csv_output/SimBox ../data/Flux_model
+
 # Position A
 ./Musae AnaOpacity \
     -i ../data/SimFlux_vis/SimBox_A_2e9_p3_z60_b5_r3_2_1/*.root \
@@ -167,6 +171,7 @@ Compare each position against the open-sky reference.
 The 5 CSV files above are the input for 3D density reconstruction. Copy them:
 
 ```bash
+mkdir -p ../../MuCT/input
 cp ../data/Csv_output/SimBox/SimBox_*_2e9_*.csv ../../MuCT/input/
 ```
 

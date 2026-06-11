@@ -50,7 +50,7 @@ option(MUSAE_FULL_UNITY_BUILD "Building Musae use unity build technique COMPLETE
 option(MUSAE_USE_SHARED_MSVC_RT "Select the MSVC runtime library for use (MSVC only). ON for shared (.dll), OFF for static (.lib). If you run into link error related to MSVC runtime, you can try flip this." ON)
 cmake_dependent_option(MUSAE_ENABLE_UNITY_BUILD "Build Musae with unity build technique." OFF "NOT MUSAE_FULL_UNITY_BUILD" ON)
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Build using shared libraries")
-set(MUSAE_BUILTIN_MUSTARD_VERSION 0.8.0 CACHE STRING "Set built-in Mustard version (if required).")
+set(MUSAE_BUILTIN_MUSTARD_VERSION 0.25.114 CACHE STRING "Set built-in Mustard version (if required).")
 set(MUSAE_BUILTIN_TURTLE_VERSION 0.11 CACHE STRING "Set built-in turtle version (if required).")
 set(MUSAE_BUILTIN_PMP_VERSION 3.0.0 CACHE STRING "Set built-in pmp version (if required).")
 

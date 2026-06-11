@@ -5,20 +5,80 @@
 ### 1.1 Dependencies
 
 **Musae-main:**
-- C++20 compiler with `<format>` support — **GCC ≥ 13** or **Clang ≥ 17**
-- CMake ≥ 3.21
-- [Mustard](https://github.com/somewho/Mustard) — Geant4-based simulation framework (built-in or system-installed)
-- [turtle](https://github.com/somewho/turtle) — STL/Tesselated geometry support
-- [pmp](https://github.com/somewho/pmp) — Polygon mesh processing
-- ROOT (with `HistPainter` and `Minuit2`)
-- OpenMPI (for parallel execution of GenCRMu and SimFlux)
+
+| Dependency | Minimum Version | Notes |
+|---|---|---|
+| C++ Compiler | GCC ≥ 13 or Clang ≥ 17 | Required for `std::format` |
+| CMake | ≥ 3.21 | |
+| MPI | ≥ 3.1 (OpenMPI or MPICH) | `sudo apt install libopenmpi-dev` |
+| Eigen | ≥ 3.4.0 | `sudo apt install libeigen3-dev` |
+| Geant4 | ≥ 11.0.0 | Must enable GDML: `-DGEANT4_USE_GDML=ON` |
+| ROOT | ≥ 6.30.00 | See [ROOT install guide](https://root.cern.ch/install/) |
+| Mustard | 0.25.114 (custom) | Automatically downloaded by CMake |
 
 **MuCT (Python notebooks):**
 - Python ≥ 3.9
 - See `MuCT/requirements_muCT.txt` for the full package list
 - Key packages: numpy, scipy, pandas, numba, matplotlib, trimesh, plotly, pyvista, laspy, kaleido, imageio, jupyter
 
-### 1.2 Installing a C++20 Compiler
+### 1.2 Installing System Dependencies
+
+```bash
+# Ubuntu / Debian
+sudo apt install build-essential cmake libopenmpi-dev libeigen3-dev \
+    libx11-dev libxext-dev libxft-dev libxpm-dev \
+    libgl-dev libglu-dev qt6-base-dev qt6-base-dev-tools \
+    libxerces-c-dev libexpat1-dev zlib1g-dev libfreetype-dev
+```
+
+### 1.3 Installing Geant4
+
+Refer to the [official Geant4 installation guide](https://geant4-userdoc.web.cern.ch/UsersGuides/InstallationGuide/html/) for detailed instructions. A minimal build suitable for Musae:
+
+```bash
+# Download Geant4 source
+wget https://gitlab.cern.ch/geant4/geant4/-/archive/v11.4.1/geant4-v11.4.1.tar.gz
+tar xzf geant4-v11.4.1.tar.gz
+
+# Configure and build (out-of-source)
+mkdir -p geant4-v11.4.1-build geant4-v11.4.1-install
+cd geant4-v11.4.1-build
+cmake -DCMAKE_INSTALL_PREFIX=$PWD/../geant4-v11.4.1-install \
+      -DGEANT4_USE_GDML=ON \
+      -DGEANT4_USE_QT=ON \
+      -DGEANT4_USE_OPENGL_X11=ON \
+      -DGEANT4_BUILD_MULTITHREADED=ON \
+      ../geant4-v11.4.1
+make -j$(nproc)
+make install
+```
+
+**Important:** `-DGEANT4_USE_GDML=ON` is **required** by Musae. Without it, compilation will fail with `G4GDMLParser.hh: No such file or directory`.
+
+After installation, make CMake aware of Geant4 (choose **one** method):
+
+**Method A — environment variable:**
+```bash
+export CMAKE_PREFIX_PATH=<geant4-install-dir>:$CMAKE_PREFIX_PATH
+# Add to ~/.bashrc for persistence
+```
+
+**Method B — CMake argument per build:**
+```bash
+cmake .. -DGeant4_DIR=<geant4-install-dir>/lib/cmake/Geant4
+```
+
+For runtime, Geant4 shared libraries must be findable:
+```bash
+export LD_LIBRARY_PATH=<geant4-install-dir>/lib:$LD_LIBRARY_PATH
+# Add to ~/.bashrc for persistence
+```
+
+### 1.4 Installing ROOT
+
+Refer to the [official ROOT installation guide](https://root.cern.ch/install/). Pre-compiled binaries are recommended for most users. Make sure ROOT is discoverable by CMake (`ROOT_DIR` or `CMAKE_PREFIX_PATH`).
+
+### 1.5 Installing a C++20 Compiler
 
 This project requires GCC ≥ 13 or Clang ≥ 17 for `<format>` support. Older versions (e.g., GCC 11–12) set C++20 but lack this header and will fail with `fatal error: format: No such file or directory`.
 
@@ -43,18 +103,18 @@ sudo apt install clang-17 libc++-17-dev libc++abi-17-dev
 export CC=clang-17 CXX=clang++-17
 ```
 
-### 1.3 Build Instructions
+### 1.6 Build Instructions
 
 ```bash
 cd Musae-main
 mkdir -p build && cd build
-cmake .. -DMUSAE_BUILTIN_MUSTARD=ON   # or set MUSTARD path appropriately
+cmake .. -DMUSAE_BUILTIN_MUSTARD=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 make -j$(nproc)
 ```
 
 The built executable `Musae` will be located in `Musae-main/build/`.
 
-### 1.4 Runtime Prerequisites
+### 1.7 Runtime Prerequisites
 
 - All shell scripts in `scripts/` are designed to be run from the `build/` directory.
 - **Important:** `Example1.md` and `Example2.md` are **reference guides**, not executable scripts. Open them in any markdown viewer (or `cat`) and copy/run each command individually. SimFlux (Step 2 in both examples) requires manual YAML editing between scenarios and cannot be fully automated.

@@ -11,12 +11,27 @@ For detailed usage instructions, workflows, and parameter references, see **[MAN
 
 ### 1. Build Musae-main
 
-Requires CMake ≥ 3.21, **GCC ≥ 13** (or **Clang ≥ 17**) for C++20 `<format>` support, ROOT, Geant4, OpenMPI.
+**Required system dependencies:**
+- CMake ≥ 3.21
+- GCC ≥ 13 (or Clang ≥ 17) for C++20 `<format>` support
+- MPI ≥ 3.1: `sudo apt install libopenmpi-dev`
+- Eigen ≥ 3.4.0: `sudo apt install libeigen3-dev`
+- Geant4 ≥ 11.0.0 with GDML enabled (see [install guide](https://geant4-userdoc.web.cern.ch/UsersGuides/InstallationGuide/html/))
+- ROOT ≥ 6.30.00 (see [install guide](https://root.cern.ch/install/))
 
+**For Ubuntu/Debian, one-line dependency install (plus Geant4 and ROOT):**
+```bash
+sudo apt install build-essential cmake libopenmpi-dev libeigen3-dev \
+    libx11-dev libxext-dev libxpm-dev libgl-dev libglu-dev \
+    qt6-base-dev qt6-base-dev-tools libxerces-c-dev libexpat1-dev \
+    zlib1g-dev libfreetype-dev
+```
+
+**Build:**
 ```bash
 cd Musae-main
 mkdir -p build && cd build
-cmake .. -DMUSAE_BUILTIN_MUSTARD=ON
+cmake .. -DMUSAE_BUILTIN_MUSTARD=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 make -j$(nproc)
 ```
 

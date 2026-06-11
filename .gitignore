@@ -46,6 +46,7 @@ Musae-main/scripts/*
 # Allow images used by docs (if any)
 !Musae-main/scripts/pic/
 Musae-main/scripts/pic/*
+!Musae-main/scripts/pic/*.png
 
 # ==============================================================================
 # Musae-main: data

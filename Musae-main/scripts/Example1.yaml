@@ -33,8 +33,8 @@ World: ## World volume parameters.
 Model: ## Imported models. Position = origin for all models, Path = list of STL model file paths, Material = list of material names (one-to-one with Path).
   Position: [0, 0, 0]
   Path:
-    - ../data/Stl_model/ConcreteWallWithCubeHole0p7_Unit_mm.stl  # Wall with cavity
-    # - ../data/Stl_model/ConcreteWall_Unit_mm.stl               # Wall without cavity (uncomment for hole-free scenario)
+    # - ../data/Stl_model/ConcreteWallWithCubeHole0p7_Unit_mm.stl  # Wall with cavity
+    - ../data/Stl_model/ConcreteWall_Unit_mm.stl               # Wall without cavity (uncomment for hole-free scenario)
     - ../data/Stl_model/StellPlate_Unit_mm.stl
   Material:
     - Concrete

@@ -6,17 +6,17 @@
 /control/saveHistory
 /run/verbose 2
 
-/Mustard/Detector/Description/Import ../scripts/Example2_fs.yaml
+/Mustard/Detector/Description/Import ../scripts/Example1.yaml
 
 /run/initialize
 
 /Musae/Physics/NonMuonProcessActivation no
 /Musae/Physics/PerfectRangeGeneration no
 
-/Mustard/Analysis/FilePath ../data/SimFlux_vis/SimFlux_test
+/Mustard/Analysis/FilePath ../data/SimFlux_vis/ConcreteWall_test
 /Mustard/Analysis/FileMode RECREATE
 
-/Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/Tianqin_sky_1e8_p15_z60_b100_r3_9_26/* CRMu
+/Mustard/Generator/FromDataPrimaryGenerator/EventData ../data/GenCRMu/ConcreteWall_test/* CRMu
 
 /tracking/verbose 2
 #/run/verbose 2
