@@ -50,6 +50,15 @@ auto Analysis::EventEndUserAction() -> void {
             const auto cRMuEvent{fTruthFitter(hits)};
             if (cRMuEvent) {
                 Get<"Range">(*cRMuEvent) = fRange / (g/cm2);
+                // Compute world position from first hit
+                const auto& firstHit{*hits.front()};
+                const auto worldPos{fLga.HitWorldPosition(Get<"DetID">(firstHit),
+                                                           Get<"ModID">(firstHit),
+                                                           Get<"x">(firstHit)[0],
+                                                           Get<"x">(firstHit)[1])};
+                Get<"x_world">(*cRMuEvent) = {static_cast<float>(worldPos[0]),
+                                               static_cast<float>(worldPos[1]),
+                                               static_cast<float>(worldPos[2])};
                 fCRMuSimEventOutput->Fill(*cRMuEvent);
             }
         }

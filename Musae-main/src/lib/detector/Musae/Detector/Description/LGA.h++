@@ -77,6 +77,10 @@ public:
     auto EnvelopeTransform(int detID) const -> HepGeom::Transform3D;
     auto ModuleLocalTransform(int moduleID, double zShift = 0) const -> HepGeom::Transform3D;
     auto Transform(int detID, int moduleID, double zShift = 0) const -> HepGeom::Transform3D;
+    // Compute world 3D position from local hit coordinates.
+    // (lx, ly) is the 2D hit position on the scintillator plane in module-local frame
+    // (as stored in LGAHit.x). zShift defaults to the scintillator plane offset.
+    auto HitWorldPosition(int detID, int moduleID, float lx, float ly, double zShift = -1) const -> muc::array3d;
     auto FiberX(int fiberLocalID) const -> double;
     auto FiberY(int fiberLocalID) const -> double;
 

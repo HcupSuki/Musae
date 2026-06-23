@@ -164,6 +164,21 @@ auto LGA::Transform(int detID, int moduleID, double zShift) const -> HepGeom::Tr
            Rotation(detID);
 }
 
+auto LGA::HitWorldPosition(int detID, int moduleID, float lx, float ly, double zShift) const -> muc::array3d {
+    if (zShift == -1) {
+        zShift = -ScintillatorThickness() / 2.;
+    }
+    // offset from detector Position to the scintillator plane in local z
+    const double offset{ModuleZ(moduleID) + zShift - BoxCenterZ()};
+    // rotate local (lx, ly, offset) by detector rotation and add world Position
+    const HepGeom::Vector3D<double> localPoint{lx, ly, offset};
+    const HepGeom::Vector3D<double> rotated{Rotation(detID) * localPoint};
+    const auto& pos{Position(detID)};
+    return {pos[0] + rotated.x(),
+            pos[1] + rotated.y(),
+            pos[2] + rotated.z()};
+}
+
 auto LGA::FiberX(int fiberLocalID) const -> double {
     return LGACellWidth() * (2 * fiberLocalID + 1 - NFiberX()) / 2;
 }

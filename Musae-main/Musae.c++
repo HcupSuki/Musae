@@ -1,4 +1,5 @@
 #include "Musae/AnaOpacity/AnaOpacity.h++"
+#include "Musae/AnaScatter/AnaScatter.h++"
 #include "Musae/Projection/Projection.h++"
 #include "Musae/GenCRMu/GenCRMu.h++"
 #include "Musae/ReconLGA/ReconLGA.h++"
@@ -10,6 +11,7 @@
 auto main(int argc, char* argv[]) -> int {
     Mustard::Application::SubprogramLauncher launcher;
     launcher.AddSubprogram<Musae::AnaOpacity::AnaOpacity>();
+    launcher.AddSubprogram<Musae::AnaScatter::AnaScatter>();
     launcher.AddSubprogram<Musae::Projection::Projection>();
     launcher.AddSubprogram<Musae::GenCRMu::GenCRMu>();
     launcher.AddSubprogram<Musae::ReconLGA::ReconLGA>();

@@ -7,6 +7,7 @@
 **/.tmp/
 **/.vs/
 **/.vscode/
+**/.claude/
 **/*.a
 **/*.bin
 **/*.dll
@@ -104,6 +105,8 @@ MuCT/muCT/
 MuCT/output/
 MuCT/temp_frames/
 MuCT/temp_frames_terrain/
+!MuCT/ML_EM_reconstruct.ipynb
+!MuCT/ML_EM_visualize.ipynb
 
 # input: ignore everything except Terrain/SimBox_Nx2_Ny2.csv
 MuCT/input/*
@@ -122,3 +125,5 @@ document/doxygen/rtf/
 document/doxygen/xml/
 install/
 thirdparty/
+MuCT/test_data_ground_truth.npy
+MuCT/test_data_perfect.csv
