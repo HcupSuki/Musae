@@ -77,7 +77,8 @@ LGA::LGA() : // clang-format off
     fNHitThreshold{this, 3},
     fNHitPreThreshold{this, 1},
     fNSymfilterThreshold{this, 1},
-    fSoftDeadTime{this, 0.} {
+    fSoftDeadTime{this, 0.},
+    fPreprocessDigiData{this, false} {
     // Initialize map
     fChipMap = {
         {5, 0},
@@ -359,6 +360,7 @@ auto LGA::ImportAllValue(const YAML::Node& node) -> void {
     ImportValue(node, fNHitPreThreshold, "NHitPreThreshold");
     ImportValue(node, fNSymfilterThreshold, "NSymfilterThreshold");
     ImportValue(node, fSoftDeadTime, "SoftDeadTime");
+    ImportValue(node, fPreprocessDigiData, "PreprocessDigiData");
 }
 
 auto LGA::ExportAllValue(YAML::Node& node) const -> void {
@@ -389,6 +391,7 @@ auto LGA::ExportAllValue(YAML::Node& node) const -> void {
     ExportValue(node, fNHitPreThreshold, "NHitPreThreshold");
     ExportValue(node, fNSymfilterThreshold, "NSymfilterThreshold");
     ExportValue(node, fSoftDeadTime, "SoftDeadTime");
+    ExportValue(node, fPreprocessDigiData, "PreprocessDigiData");
 }
 
 } // namespace Musae::Detector::Description

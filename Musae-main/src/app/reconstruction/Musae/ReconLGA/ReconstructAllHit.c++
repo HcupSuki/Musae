@@ -148,16 +148,19 @@ auto ReconstructAllHit(const LGADigiMap<std::unique_ptr<LGADigi>>& eventDigi, Re
             continue;
         }
         auto& digiOfTheModule{iDigiOfTheModule->second};
-
+        std::unique_ptr<LGAHit> hit;
         if (not digiOfTheModule.contains('x') or
             not digiOfTheModule.contains('y')) {
             digiOfTheModule.clear();
             continue;
         }
-
-        auto preDigiOfTheModule{PreprocessDigiData(digiOfTheModule)};
-        auto hit{ReconstructHit(preDigiOfTheModule, hitID, method)};
-        // auto hit{ReconstructHit(digiOfTheModule, hitID, method)};
+        if (lga.PreprocessDigiData()){
+            auto preDigiOfTheModule{PreprocessDigiData(digiOfTheModule)};
+            hit = ReconstructHit(preDigiOfTheModule, hitID, method);
+        }
+        else{
+            hit = ReconstructHit(digiOfTheModule, hitID, method);
+        }
         if (hit == nullptr) {
             digiOfTheModule.clear();
             continue;

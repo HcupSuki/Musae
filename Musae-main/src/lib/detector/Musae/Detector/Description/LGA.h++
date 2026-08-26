@@ -133,6 +133,7 @@ public:
     auto NHitPreThreshold() const -> auto { return *fNHitPreThreshold; }
     auto NSymfilterThreshold() const -> auto { return *fNSymfilterThreshold; }
     auto SoftDeadTime() const -> auto { return *fSoftDeadTime; }
+    auto PreprocessDigiData() const -> auto { return *fPreprocessDigiData; }
 
     auto LuminousDigiEnergyThreshold(double val) -> void { fLuminousDigiEnergyThreshold = val; }
     auto NLuminousDigiThresholdPerDirection(int val) -> void { fNLuminousDigiThresholdPerDirection = val; }
@@ -140,6 +141,7 @@ public:
     auto NHitPreThreshold(int val) -> void { fNHitPreThreshold = val; }
     auto NSymfilterThreshold(int val) -> void { fNSymfilterThreshold = val; }
     auto SoftDeadTime(double val) -> void { fSoftDeadTime = val; }
+    auto PreprocessDigiData(bool val) -> void { fPreprocessDigiData = val; }
 
 private:
     // Geometry
@@ -195,6 +197,7 @@ private:
     Simple<int> fNHitPreThreshold;
     Simple<int> fNSymfilterThreshold;
     Simple<double> fSoftDeadTime;
+    Simple<bool> fPreprocessDigiData;
 };
 
 } // namespace Musae::Detector::Description
