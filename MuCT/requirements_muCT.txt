@@ -33,6 +33,10 @@ pillow>=10.0
 tqdm>=4.64
 requests>=2.28
 
+# Desktop GUI (optional, MuCT/mugui)
+PyQt5>=5.15
+vtk>=9.2
+
 # Jupyter (for running .ipynb notebooks)
 jupyter>=1.0
 ipykernel>=6.0

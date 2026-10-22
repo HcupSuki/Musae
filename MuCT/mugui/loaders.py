@@ -230,7 +230,9 @@ def load_opacity_csv(path):
     theta_edges[0] = max(theta_edges[0], 0.0)  # 下边界不越过极点
 
     stem = os.path.basename(path)
-    m = re.match(r'SimBox_([A-E])', stem)
+    # 兼容 SimBox_A_...、TianqinNewPbCube_A_...、NewTianqin_C_... 等命名：
+    # 取文件名中第一个独立的单个大写字母（A-H）作为探测器编号。
+    m = re.search(r'(?:^|_)([A-H])(?=_|\.|$)', stem)
     detector = m.group(1) if m else None
     filt = None
     for kw in ('GaussianFilter', 'MeanFilter', 'MedianFilter'):

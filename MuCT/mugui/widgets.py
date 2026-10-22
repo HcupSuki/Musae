@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """左侧控制面板控件：双滑块、滑杆+数字、场景预设行、三个标签页面板。"""
+import os
+
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -176,11 +178,12 @@ def parse_detectors(text):
 
 
 class PresetRow(QWidget):
-    """场景预设下拉框 + 手动探测点编辑器（自定义时显示）。"""
+    """场景预设下拉框 + 真实地形 CSV + 手动探测点编辑器（可选，自定义时显示）。"""
     presetChanged = pyqtSignal(str)
     detectorsChanged = pyqtSignal(list)
+    terrainRequested = pyqtSignal()
 
-    def __init__(self, presets, parent=None):
+    def __init__(self, presets, parent=None, detector_editor=True):
         super().__init__(parent)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -190,18 +193,40 @@ class PresetRow(QWidget):
         self.combo.addItems(presets.names())
         row.addWidget(self.combo, 1)
         lay.addLayout(row)
+        # 真实地形放在场景区域，每个标签页可以独立选择自己的地形
+        self.btn_terrain = QPushButton('加载真实地形 CSV…')
+        self.btn_terrain.setToolTip('为当前标签页加载真实地形 CSV（X,Y,height）')
+        self.btn_terrain.clicked.connect(self.terrainRequested)
+        lay.addWidget(self.btn_terrain)
+        self.lbl_terrain = QLabel('真实地形: 未加载')
+        self.lbl_terrain.setWordWrap(True)
+        self.lbl_terrain.setStyleSheet('color: #666;')
+        lay.addWidget(self.lbl_terrain)
+        self._detector_editor = detector_editor
         self.editor = QPlainTextEdit()
-        self.editor.setPlaceholderText('每行一个探测点：名称 x y z\n如: A -242.5 133.5 -51.51')
-        self.editor.setFixedHeight(70)
+        self.editor.setPlaceholderText(
+            '每行一个探测点：名称 x y z\n'
+            '如: A 0 0 0\n输入后点下方「应用探测器位置」')
+        self.editor.setFixedHeight(78)
         self.editor.setVisible(False)
-        lay.addWidget(self.editor)
+        self.btn_apply_det = QPushButton('应用探测器位置')
+        self.btn_apply_det.setVisible(False)
+        self.btn_apply_det.setToolTip('把上面输入的探测点应用到当前标签页，并把镜头中心移到探测点')
+        self.btn_apply_det.clicked.connect(self._apply_detectors)
+        if detector_editor:
+            lay.addWidget(self.editor)
+            lay.addWidget(self.btn_apply_det)
         self.combo.currentTextChanged.connect(self._on_preset)
-        self.editor.textChanged.connect(
-            lambda: self.detectorsChanged.emit(parse_detectors(self.editor.toPlainText())))
 
     def _on_preset(self, name):
-        self.editor.setVisible(name == '自定义')
+        if self._detector_editor:
+            custom = name == '自定义'
+            self.editor.setVisible(custom)
+            self.btn_apply_det.setVisible(custom)
         self.presetChanged.emit(name)
+
+    def _apply_detectors(self):
+        self.detectorsChanged.emit(parse_detectors(self.editor.toPlainText()))
 
     def preset(self):
         return self.combo.currentText()
@@ -215,7 +240,24 @@ class PresetRow(QWidget):
             self.combo.blockSignals(True)
             self.combo.setCurrentIndex(idx)
             self.combo.blockSignals(False)
-        self.editor.setVisible(name == '自定义')
+        if self._detector_editor:
+            custom = name == '自定义'
+            self.editor.setVisible(custom)
+            self.btn_apply_det.setVisible(custom)
+
+    def set_terrain_label(self, path=None, warning=None):
+        if path:
+            self.lbl_terrain.setText(f'真实地形: {os.path.basename(path)}')
+            self.lbl_terrain.setToolTip(path)
+            self.lbl_terrain.setStyleSheet('color: #333;')
+        elif warning:
+            self.lbl_terrain.setText('真实地形: 未加载（预设文件缺失）')
+            self.lbl_terrain.setToolTip(warning)
+            self.lbl_terrain.setStyleSheet('color: #a33;')
+        else:
+            self.lbl_terrain.setText('真实地形: 未加载')
+            self.lbl_terrain.setToolTip('')
+            self.lbl_terrain.setStyleSheet('color: #666;')
 
 
 # ================================================================ 密度面板
@@ -236,6 +278,7 @@ class DensityPanel(QWidget):
     axesToggled = pyqtSignal(bool)
     presetChanged = pyqtSignal(str)
     detectorsChanged = pyqtSignal(list)
+    terrainRequested = pyqtSignal()
 
     def __init__(self, presets, parent=None):
         super().__init__(parent)
@@ -334,6 +377,7 @@ class DensityPanel(QWidget):
         self.chk_axes.toggled.connect(self.axesToggled)
         self.preset_row.presetChanged.connect(self.presetChanged)
         self.preset_row.detectorsChanged.connect(self.detectorsChanged)
+        self.preset_row.terrainRequested.connect(self.terrainRequested)
 
     def _hline(self):
         f = QFrame()
@@ -400,6 +444,9 @@ class DensityPanel(QWidget):
     def terrain_on(self):
         return self.chk_terrain.isChecked()
 
+    def set_terrain_label(self, path=None, warning=None):
+        self.preset_row.set_terrain_label(path, warning)
+
 
 # ================================================================ 地形面板
 
@@ -412,11 +459,9 @@ class TerrainPanel(QWidget):
     rangeChanged = pyqtSignal(float, float)
     realToggled = pyqtSignal(bool)
     realOpacityChanged = pyqtSignal(float)
-    detectorsToggled = pyqtSignal(bool)
-    extrasToggled = pyqtSignal(bool)
     axesToggled = pyqtSignal(bool)
     presetChanged = pyqtSignal(str)
-    detectorsChanged = pyqtSignal(list)
+    terrainRequested = pyqtSignal()
 
     def __init__(self, presets, parent=None):
         super().__init__(parent)
@@ -428,7 +473,7 @@ class TerrainPanel(QWidget):
         lay.addWidget(self.btn_load)
         lay.addWidget(self.lbl_file)
         lay.addWidget(self._hline())
-        self.preset_row = PresetRow(presets)
+        self.preset_row = PresetRow(presets, detector_editor=False)
         lay.addWidget(self.preset_row)
         # 预处理
         self.chk_median = QCheckBox('中值滤波（size=3，与 notebook 一致）')
@@ -466,6 +511,7 @@ class TerrainPanel(QWidget):
         row.addWidget(QLabel('配色:'))
         self.cmap = QComboBox()
         self.cmap.addItems(['灰度', '地形色', 'viridis', 'turbo', 'plasma', 'jet'])
+        self.cmap.setCurrentIndex(1)  # 默认彩色地形，而不是灰阶
         row.addWidget(self.cmap, 1)
         lay.addLayout(row)
         # 叠加
@@ -478,12 +524,6 @@ class TerrainPanel(QWidget):
         self.real_opacity = SliderSpin(0.05, 1.0, 0.3, decimals=2, step=0.05)
         lay.addLayout(trow)
         lay.addWidget(self.real_opacity)
-        self.chk_detectors = QCheckBox('显示测量点（红点+标签）')
-        self.chk_detectors.setChecked(True)
-        lay.addWidget(self.chk_detectors)
-        self.chk_extras = QCheckBox('显示辅助几何（隧道/边界）')
-        self.chk_extras.setChecked(True)
-        lay.addWidget(self.chk_extras)
         self.chk_axes = QCheckBox('显示坐标轴角标')
         lay.addWidget(self.chk_axes)
         lay.addStretch(1)
@@ -498,11 +538,9 @@ class TerrainPanel(QWidget):
         self.range_max.valueChanged.connect(self._range_spin_moved)
         self.chk_real.toggled.connect(self.realToggled)
         self.real_opacity.valueChanged.connect(self.realOpacityChanged)
-        self.chk_detectors.toggled.connect(self.detectorsToggled)
-        self.chk_extras.toggled.connect(self.extrasToggled)
         self.chk_axes.toggled.connect(self.axesToggled)
         self.preset_row.presetChanged.connect(self.presetChanged)
-        self.preset_row.detectorsChanged.connect(self.detectorsChanged)
+        self.preset_row.terrainRequested.connect(self.terrainRequested)
 
     def _hline(self):
         f = QFrame()
@@ -555,6 +593,9 @@ class TerrainPanel(QWidget):
     def real_opacity_value(self):
         return self.real_opacity.value()
 
+    def set_terrain_label(self, path=None, warning=None):
+        self.preset_row.set_terrain_label(path, warning)
+
 
 # ================================================================ Opacity 面板
 
@@ -570,12 +611,14 @@ class OpacityPanel(QWidget):
     hideZeroToggled = pyqtSignal(bool)
     subdivChanged = pyqtSignal(int)
     detectorsToggled = pyqtSignal(bool)
+    detectorSizeChanged = pyqtSignal(float)
     terrainToggled = pyqtSignal(bool)
     terrainOpacityChanged = pyqtSignal(float)
     extrasToggled = pyqtSignal(bool)
     axesToggled = pyqtSignal(bool)
     presetChanged = pyqtSignal(str)
     detectorsChanged = pyqtSignal(list)
+    terrainRequested = pyqtSignal()
 
     def __init__(self, presets, parent=None):
         super().__init__(parent)
@@ -586,6 +629,7 @@ class OpacityPanel(QWidget):
         self.file_list.setFixedHeight(96)
         lay.addWidget(self.file_list)
         self.btn_remove = QPushButton('移除选中文件')
+        self.btn_remove.setToolTip('移除列表中选中的文件；点复选框或文件名都会选中该行')
         lay.addWidget(self.btn_remove)
         lay.addWidget(self._hline())
         self.preset_row = PresetRow(presets)
@@ -597,13 +641,13 @@ class OpacityPanel(QWidget):
         self.r_min = QDoubleSpinBox()
         self.r_min.setRange(0.1, 500)
         self.r_min.setDecimals(1)
-        self.r_min.setValue(5.0)
+        self.r_min.setValue(10.0)
         rrow.addWidget(self.r_min)
         rrow.addWidget(QLabel('r_max'))
         self.r_max = QDoubleSpinBox()
         self.r_max.setRange(0.1, 2000)
         self.r_max.setDecimals(1)
-        self.r_max.setValue(40.0)
+        self.r_max.setValue(250.0)
         rrow.addWidget(self.r_max)
         lay.addLayout(rrow)
         grow = QHBoxLayout()
@@ -650,6 +694,11 @@ class OpacityPanel(QWidget):
         self.chk_detectors = QCheckBox('显示探测器（红球+标签）')
         self.chk_detectors.setChecked(True)
         lay.addWidget(self.chk_detectors)
+        drow = QHBoxLayout()
+        drow.addWidget(QLabel('  红点半径:'))
+        self.detector_size = SliderSpin(0.5, 500.0, 8.0, decimals=1, step=0.5)
+        lay.addLayout(drow)
+        lay.addWidget(self.detector_size)
         self.chk_terrain = QCheckBox('显示真实地形薄壳')
         self.chk_terrain.setChecked(True)
         lay.addWidget(self.chk_terrain)
@@ -680,12 +729,14 @@ class OpacityPanel(QWidget):
         self.subdiv.currentIndexChanged.connect(
             lambda _: self.subdivChanged.emit(int(self.subdiv.currentText()[0])))
         self.chk_detectors.toggled.connect(self.detectorsToggled)
+        self.detector_size.valueChanged.connect(self.detectorSizeChanged)
         self.chk_terrain.toggled.connect(self.terrainToggled)
         self.terrain_opacity.valueChanged.connect(self.terrainOpacityChanged)
         self.chk_extras.toggled.connect(self.extrasToggled)
         self.chk_axes.toggled.connect(self.axesToggled)
         self.preset_row.presetChanged.connect(self.presetChanged)
         self.preset_row.detectorsChanged.connect(self.detectorsChanged)
+        self.preset_row.terrainRequested.connect(self.terrainRequested)
 
     def _hline(self):
         f = QFrame()
@@ -699,13 +750,19 @@ class OpacityPanel(QWidget):
             self.rangeChanged.emit(lo, hi)
 
     def _item_changed(self, item):
-        self.fileVisibilityChanged.emit(self.file_list.row(item), item.checkState() == Qt.Checked)
+        # 勾选/取消勾选复选框时，也把该行设为当前选中行。
+        # 否则用户点复选框后点“移除选中文件”会因为 selectedItems() 为空而毫无反应。
+        self.file_list.setCurrentItem(item)
+        item.setSelected(True)
+        self.fileVisibilityChanged.emit(self.file_list.row(item),
+                                        item.checkState() == Qt.Checked)
 
     def add_file_item(self, name):
         item = QListWidgetItem(name)
         item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
         item.setCheckState(Qt.Checked)
         self.file_list.addItem(item)
+        self.file_list.setCurrentItem(item)
 
     def remove_selected(self):
         for item in self.file_list.selectedItems():
@@ -728,6 +785,18 @@ class OpacityPanel(QWidget):
 
     def detectors(self):
         return self.preset_row.detectors()
+
+    def set_radius(self, r_min, r_max):
+        for s, v in ((self.r_min, r_min), (self.r_max, r_max)):
+            s.blockSignals(True)
+            s.setValue(v)
+            s.blockSignals(False)
+
+    def set_detector_size(self, radius):
+        self.detector_size.set_value(radius)
+
+    def set_terrain_label(self, path=None, warning=None):
+        self.preset_row.set_terrain_label(path, warning)
 
     def terrain_on(self):
         return self.chk_terrain.isChecked()

@@ -18,7 +18,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('MuCT 重建结果可视化')
+        self.setWindowTitle('MuCT Reconstruction Viewer')
         self.resize(1560, 960)
         self.presets = ScenePresets()
 
@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
     def _screenshot(self):
         view = self._current_view()
         default = os.path.join(os.path.expanduser('~'), 'mugui_screenshot.png')
-        path, _ = QFileDialog.getSaveFileName(self, '保存截图', default, 'PNG (*.png)')
+        path, _ = QFileDialog.getSaveFileName(self, 'Save screenshot', default, 'PNG (*.png)')
         if not path:
             return
         if not path.endswith('.png'):
@@ -89,11 +89,34 @@ class MainWindow(QMainWindow):
             view.screenshot(path, mag)
             self.statusBar().showMessage(f'已保存截图: {path}', 8000)
         except Exception as e:
-            QMessageBox.critical(self, '截图失败', str(e))
+            QMessageBox.critical(self, 'Screenshot failed', str(e))
 
     def _reset_camera(self):
         self._current_view().reset_camera()
         self.statusBar().showMessage('已重置相机视角', 3000)
+
+    def _load_true_terrain(self, view, panel=None):
+        path, _ = QFileDialog.getOpenFileName(
+            self, 'Select true terrain CSV', os.getcwd(), 'CSV (*.csv)')
+        if not path:
+            return
+        try:
+            if loaders.detect_file_type(path) != 'terrain_csv':
+                raise ValueError('不是地形 CSV（需要 X,Y,height 列）')
+            view.set_terrain_csv(path)
+            if panel is not None:
+                self._sync_terrain_label(panel, view)
+            self.statusBar().showMessage(f'已加载真实地形: {path}', 8000)
+        except Exception as e:
+            QMessageBox.critical(self, 'Load failed', str(e))
+
+    @staticmethod
+    def _sync_terrain_label(panel, view):
+        """把视图当前真实地形状态同步到“场景”区域的小标签。"""
+        if panel is None:
+            return
+        panel.set_terrain_label(getattr(view, 'terrain_csv', None),
+                                getattr(view, 'scene_warning', None))
 
     # ------------------------------------------------------------ 密度页
     def _wire_density(self):
@@ -111,14 +134,24 @@ class MainWindow(QMainWindow):
         p.detectorsToggled.connect(v.set_detectors)
         p.extrasToggled.connect(v.set_extras)
         p.axesToggled.connect(v.set_axes_visible)
-        p.presetChanged.connect(
-            lambda name: v.apply_preset(name, p.detectors()))
+        p.terrainRequested.connect(lambda: self._load_true_terrain(v, p))
+        p.presetChanged.connect(lambda name: self._on_density_preset(name))
         p.detectorsChanged.connect(
-            lambda dets: v.apply_preset(p.preset(), dets) if p.preset() == '自定义' else None)
+            lambda dets: self._on_density_preset(p.preset(), dets))
+
+    def _on_density_preset(self, name, detectors=None):
+        v, p = self.density_view, self.density_panel
+        if detectors is None:
+            detectors = p.detectors()
+        v.apply_preset(name, detectors)
+        self._sync_terrain_label(p, v)
+        if name == '自定义':
+            self.statusBar().showMessage(
+                f'已应用 {len(detectors or [])} 个自定义探测器', 5000)
 
     def _load_density(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, '选择密度重建数据', os.getcwd(), '数据文件 (*.npy *.csv)')
+            self, 'Select density reconstruction data', os.getcwd(), 'Data files (*.npy *.csv)')
         if not path:
             return
         try:
@@ -127,21 +160,27 @@ class MainWindow(QMainWindow):
             result = loaders.load_any(path)
             self.density_view.load(result)
         except Exception as e:
-            QMessageBox.critical(self, '加载失败', str(e))
+            QMessageBox.critical(self, 'Load failed', str(e))
             return
         v = self.density_view
         valid = result['rho'] != loaders.INVALID_DENSITY
         n = int(np.count_nonzero(valid))
         p = self.density_panel
-        p.set_file_label(f"{os.path.basename(path)}\n"
-                         f"网格 {result['rho'].shape[0]}×{result['rho'].shape[1]}×{result['rho'].shape[2]}"
-                         f"，有效体素 {n}")
+        label = (f"{os.path.basename(path)}\n"
+                 f"网格 {result['rho'].shape[0]}×{result['rho'].shape[1]}×{result['rho'].shape[2]}"
+                 f"，有效体素 {n}")
+        if getattr(v, 'scene_warning', None):
+            label += '\n' + v.scene_warning
+        p.set_file_label(label)
         p.set_range(v._vmin, v._vmax)
         p.set_threshold_span(v._vmin, v._vmax)
         preset = self.presets.match(path)
         p.set_preset(preset)
-        self.statusBar().showMessage(
-            f"已加载 {path}：有效体素 {n}，rho∈[{v._vmin:.3g}, {v._vmax:.3g}] g/cm³", 8000)
+        self._sync_terrain_label(p, v)
+        msg = (f"已加载 {path}：有效体素 {n}，rho∈[{v._vmin:.3g}, {v._vmax:.3g}] g/cm³")
+        if getattr(v, 'scene_warning', None):
+            msg += '；' + v.scene_warning
+        self.statusBar().showMessage(msg, 15000)
 
     # ------------------------------------------------------------ 地形页
     def _wire_terrain(self):
@@ -154,17 +193,18 @@ class MainWindow(QMainWindow):
         p.rangeChanged.connect(v.set_range)
         p.realToggled.connect(lambda on: v.set_real(on, p.real_opacity_value()))
         p.realOpacityChanged.connect(lambda op: v.set_real(p.real_on(), op))
-        p.detectorsToggled.connect(v.set_detectors)
-        p.extrasToggled.connect(v.set_extras)
         p.axesToggled.connect(v.set_axes_visible)
-        p.presetChanged.connect(
-            lambda name: v.apply_preset(name, p.detectors()))
-        p.detectorsChanged.connect(
-            lambda dets: v.apply_preset(p.preset(), dets) if p.preset() == '自定义' else None)
+        p.terrainRequested.connect(lambda: self._load_true_terrain(v, p))
+        p.presetChanged.connect(lambda name: self._on_terrain_preset(name))
+
+    def _on_terrain_preset(self, name):
+        v, p = self.terrain_view, self.terrain_panel
+        v.apply_preset(name)
+        self._sync_terrain_label(p, v)
 
     def _load_terrain(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, '选择地形重建数据', os.getcwd(), '数据文件 (*.npy *.csv)')
+            self, 'Select terrain reconstruction data', os.getcwd(), 'Data files (*.npy *.csv)')
         if not path:
             return
         try:
@@ -179,19 +219,25 @@ class MainWindow(QMainWindow):
                           'invalid': None, 'source': path, 'type': 'terrain'}
             self.terrain_view.load(result)
         except Exception as e:
-            QMessageBox.critical(self, '加载失败', str(e))
+            QMessageBox.critical(self, 'Load failed', str(e))
             return
         v = self.terrain_view
         p = self.terrain_panel
         t = result['terrain']
         tv = t[np.isfinite(t)]
-        p.set_file_label(f"{os.path.basename(path)}\n网格 {t.shape[0]}×{t.shape[1]}"
-                         f"（N_X×N_Y）")
+        label = (f"{os.path.basename(path)}\n网格 {t.shape[0]}×{t.shape[1]}（N_X×N_Y）")
+        if getattr(v, 'scene_warning', None):
+            label += '\n' + v.scene_warning
+        p.set_file_label(label)
         p.set_range(v._vmin, v._vmax)
         preset = self.presets.match(path)
         p.set_preset(preset)
-        self.statusBar().showMessage(
-            f"已加载 {path}：{t.shape[0]}×{t.shape[1]}，高度∈[{tv.min():.3g}, {tv.max():.3g}] m", 8000)
+        self._sync_terrain_label(p, v)
+        msg = (f"已加载 {path}：{t.shape[0]}×{t.shape[1]}，"
+               f"高度∈[{tv.min():.3g}, {tv.max():.3g}] m")
+        if getattr(v, 'scene_warning', None):
+            msg += '；' + v.scene_warning
+        self.statusBar().showMessage(msg, 15000)
 
     # ------------------------------------------------------------ Opacity 页
     def _wire_opacity(self):
@@ -207,18 +253,29 @@ class MainWindow(QMainWindow):
         p.hideZeroToggled.connect(v.set_hide_zero)
         p.subdivChanged.connect(v.set_subdiv)
         p.detectorsToggled.connect(v.set_detectors)
+        p.detectorSizeChanged.connect(v.set_detector_radius)
         p.terrainToggled.connect(lambda on: v.set_terrain(on, p.terrain_opacity_value()))
         p.terrainOpacityChanged.connect(lambda op: v.set_terrain(p.terrain_on(), op))
         p.extrasToggled.connect(v.set_extras)
         p.axesToggled.connect(v.set_axes_visible)
-        p.presetChanged.connect(
-            lambda name: v.apply_preset(name, p.detectors()))
+        p.terrainRequested.connect(lambda: self._load_true_terrain(v, p))
+        p.presetChanged.connect(lambda name: self._on_opacity_preset(name))
         p.detectorsChanged.connect(
-            lambda dets: v.apply_preset(p.preset(), dets) if p.preset() == '自定义' else None)
+            lambda dets: self._on_opacity_preset(p.preset(), dets))
+
+    def _on_opacity_preset(self, name, detectors=None):
+        v, p = self.opacity_view, self.opacity_panel
+        if detectors is None:
+            detectors = p.detectors()
+        v.apply_preset(name, detectors)
+        self._sync_terrain_label(p, v)
+        if name == '自定义':
+            self.statusBar().showMessage(
+                f'已应用 {len(detectors or [])} 个自定义探测器', 5000)
 
     def _load_opacity_files(self):
         paths, _ = QFileDialog.getOpenFileNames(
-            self, '选择 Opacity CSV（可多选）', os.getcwd(), 'CSV (*.csv)')
+            self, 'Select opacity CSV (multi-select)', os.getcwd(), 'CSV (*.csv)')
         if not paths:
             return
         loaded = []
@@ -230,23 +287,58 @@ class MainWindow(QMainWindow):
                 self.opacity_panel.add_file_item(os.path.basename(path))
                 loaded.append(path)
             except Exception as e:
-                QMessageBox.critical(self, f'加载失败: {os.path.basename(path)}', str(e))
+                QMessageBox.critical(self, f'Load failed: {os.path.basename(path)}', str(e))
         if loaded:
             v = self.opacity_view
             p = self.opacity_panel
             p.set_range(0.0, v._vmax)
-            preset = self.presets.match(loaded[0])
-            p.set_preset(preset)
+            if getattr(v, 'radius_autoset', False):
+                p.set_radius(v._r_min, v._r_max)
+                v.radius_autoset = False
+            if getattr(v, 'detector_autoset', False):
+                p.set_detector_size(v._detector_radius)
+                v.detector_autoset = False
+            # 不再根据文件名强行改写预设下拉框：
+            # 用户选了「自定义」/某个预设就保持，只有「自动匹配」才由 view 自己匹配。
+            active = p.preset()
+            matched = self.presets.match(loaded[0])
+            self._sync_terrain_label(p, v)
             nfiles = len(self.opacity_view.files)
-            self.statusBar().showMessage(
-                f'已加载 {nfiles} 个文件，vmax={v._vmax:.3g} g/cm²（颜色上限，半球半径按此归一）', 8000)
+            msg = (f'已加载 {nfiles} 个文件，数据 vmax={v._vmax:.3g} g/cm²'
+                   f'（柱状体长度按此归一，颜色上限可单独调）')
+            if active == '自动匹配':
+                if matched:
+                    msg += f'；自动匹配场景: {matched}'
+                else:
+                    msg += '；未匹配预设，探测器原点按 (0,0,0)'
+            elif active == '自定义':
+                msg += '；使用自定义探测器'
+            warns = [w for w in (getattr(v, 'origin_warning', None),
+                                 getattr(v, 'scene_warning', None)) if w]
+            for warn in warns:
+                msg += '；' + warn
+            # 有警告时保持显示，避免一闪而过
+            self.statusBar().showMessage(msg, 0 if warns else 15000)
         else:
             self.statusBar().showMessage('没有文件被加载', 5000)
 
     def _remove_opacity_files(self):
-        rows = sorted(self.opacity_panel.selected_rows(), reverse=True)
+        p = self.opacity_panel
+        rows = sorted(p.selected_rows(), reverse=True)
+        if not rows:
+            # 某些样式下点复选框不会选中行；退化为移除当前行
+            cur = p.file_list.currentRow()
+            if cur >= 0:
+                rows = [cur]
+        if not rows:
+            self.statusBar().showMessage(
+                '请先在文件列表中选择要移除的文件（点文件名或复选框）', 5000)
+            return
+        n = len(rows)
         for r in rows:
             self.opacity_view.remove_file(r)
-        self.opacity_panel.remove_selected()
+        p.remove_selected()
+        p.set_range(0.0, self.opacity_view._vmax)
         self.statusBar().showMessage(
-            f'当前 {len(self.opacity_view.files)} 个文件', 5000)
+            f'已移除 {n} 个文件，当前 {len(self.opacity_view.files)} 个，'
+            f'vmax={self.opacity_view._vmax:.3g}', 5000)
