@@ -56,6 +56,26 @@
       <atom value="24.305" />
     </element>
 
+    <element name="S" formula="S" Z="16">
+      <atom value="32.065" />
+    </element>
+
+    <element name="Mn" formula="Mn" Z="25">
+      <atom value="54.938" />
+    </element>
+
+    <element name="Ti" formula="Ti" Z="22">
+      <atom value="47.867" />
+    </element>
+
+    <element name="V" formula="V" Z="23">
+      <atom value="50.942" />
+    </element>
+
+    <element name="Ni" formula="Ni" Z="28">
+      <atom value="58.693" />
+    </element>
+
     <!-- Define materials -->
     <!-- Water -->
     <material name="Water" state="liquid" formula="H2O">
@@ -123,6 +143,55 @@
     <material name="StandardRock" state="solid">
       <D value="2.65" unit="g/cm3" />
       <fraction n="1" ref="Rk" />
+    </material>
+
+    <!-- Made ground / fill (sand + gravel mixture, typical) -->
+    <material name="MadeGround" state="solid">
+      <D value="1.9" unit="g/cm3" />
+      <fraction n="0.492" ref="O" />
+      <fraction n="0.337" ref="Si" />
+      <fraction n="0.060" ref="Al" />
+      <fraction n="0.032" ref="Fe" />
+      <fraction n="0.028" ref="Ca" />
+      <fraction n="0.018" ref="K" />
+      <fraction n="0.016" ref="Na" />
+      <fraction n="0.011" ref="Mg" />
+      <fraction n="0.004" ref="Ti" />
+      <fraction n="0.002" ref="Mn" />
+    </material>
+
+    <!-- Soft clay (dry mineral matter, typical average) -->
+    <material name="SoftClay" state="solid">
+      <D value="1.75" unit="g/cm3" />
+      <fraction n="0.515" ref="O" />
+      <fraction n="0.262" ref="Si" />
+      <fraction n="0.108" ref="Al" />
+      <fraction n="0.045" ref="Fe" />
+      <fraction n="0.020" ref="K" />
+      <fraction n="0.014" ref="H" />
+      <fraction n="0.012" ref="Mg" />
+      <fraction n="0.010" ref="Ca" />
+      <fraction n="0.008" ref="Ti" />
+      <fraction n="0.006" ref="Na" />
+    </material>
+
+    <!-- Asphalt pavement / asphalt concrete (hot mix, typical granite aggregate) -->
+    <material name="AsphaltPavement" state="solid">
+      <D value="2.4" unit="g/cm3" />
+      <fraction n="0.461079" ref="O" />
+      <fraction n="0.318257" ref="Si" />
+      <fraction n="0.072117" ref="Al" />
+      <fraction n="0.046475" ref="C" />
+      <fraction n="0.032321" ref="K" />
+      <fraction n="0.025865" ref="Na" />
+      <fraction n="0.020403" ref="Fe" />
+      <fraction n="0.012285" ref="Ca" />
+      <fraction n="0.0055" ref="H" />
+      <fraction n="0.004046" ref="Mg" />
+      <fraction n="0.0011" ref="S" />
+      <fraction n="0.000275" ref="N" />
+      <fraction n="0.000165" ref="V" />
+      <fraction n="0.00011" ref="Ni" />
     </material>
 
 </materials>

@@ -107,7 +107,7 @@ MuCT/temp_frames/
 MuCT/temp_frames_terrain/
 !MuCT/ML_EM_reconstruct.ipynb
 !MuCT/ML_EM_visualize.ipynb
-
+MuCT/gui_plan.md
 # input: ignore everything except Terrain/SimBox_Nx2_Ny2.csv
 MuCT/input/*
 !MuCT/input/Terrain/

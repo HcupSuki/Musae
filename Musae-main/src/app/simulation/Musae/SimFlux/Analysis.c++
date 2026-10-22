@@ -32,6 +32,7 @@ Analysis::Analysis() :
     AnalysisBase{this}, fLga{Detector::Description::LGA::Instance()}, fRange{0}, fStep{0}, fHit{false} {}
 
 auto Analysis::RunBeginUserAction(int runID) -> void {
+    fTruthFitter.MinNHit(fLga.NHitThreshold());
     fLGASimHitOutput.emplace(fmt::format("G4Run{}/LGASimHit", runID));
     fCRMuSimEventOutput.emplace(fmt::format("G4Run{}/CRMuSimEvent", runID));
 }

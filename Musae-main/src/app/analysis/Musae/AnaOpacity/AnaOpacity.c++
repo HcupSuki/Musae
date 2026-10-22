@@ -318,8 +318,8 @@ auto AnaOpacity::Main(int argc, char* argv[]) const -> int {
     auto hResult{SerachEandR(*hOpacity, materialPath, fluxmodelPath, energy_unit, cli->get<std::string>("--search-energy-mode"))};
     TCanvas cRange{"OpacityCanvas", "Opacity", canvasWidth, canvasHeight};
     // DrawHistogram_rec(cRange, *hResult->first, palette, file.get());
-    // hResult->first->Scale(1/10000.);
-    // hResult->second->Scale(1/10000.);
+    hResult->first->Scale(1/10000.);
+    hResult->second->Scale(1/10000.);
     DrawHistogram(cRange, *hResult->first, palette, rawHModel, file.get());
     TCanvas cEmin{"EminCanvas", "E_{min}", canvasWidth, canvasHeight};
     // DrawHistogram_rec(cEmin, *hResult->second, palette, file.get());
